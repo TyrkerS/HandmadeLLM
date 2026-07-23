@@ -26,11 +26,11 @@ from llm.bpe import BPETokenizer  # noqa: E402
 FIELDS = ("Features", "Words", "Summary")
 
 
-def parse_instruct(text: str) -> tuple[str, str] | None:
-    """TinyStories-Instruct rows interleave instruction fields and the story."""
-    if "Story:" not in text:
+def parse_instruct(doc: str) -> tuple[str, str] | None:
+    """Parse one reconstructed instruct document (fields + Story: + body)."""
+    if "Story:" not in doc:
         return None
-    head, story = text.split("Story:", 1)
+    head, story = doc.split("Story:", 1)
     story = story.strip()
     if not story:
         return None
@@ -45,6 +45,20 @@ def parse_instruct(text: str) -> tuple[str, str] | None:
         return None
     prompt = "\n".join(parts) + "\nStory:"
     return prompt, " " + story
+
+
+def iter_documents(rows):
+    """TinyStories-Instruct is one line per row; docs end at a <|endoftext|> row."""
+    buf = []
+    for text in rows:
+        if text.strip() == "<|endoftext|>":
+            if buf:
+                yield "\n".join(buf)
+                buf = []
+        else:
+            buf.append(text)
+    if buf:
+        yield "\n".join(buf)
 
 
 def main() -> None:
@@ -64,8 +78,8 @@ def main() -> None:
 
     def build(split, limit):
         examples = []
-        for text in ds[split]["text"]:
-            parsed = parse_instruct(text)
+        for doc in iter_documents(ds[split]["text"]):
+            parsed = parse_instruct(doc)
             if not parsed:
                 continue
             prompt, response = parsed
