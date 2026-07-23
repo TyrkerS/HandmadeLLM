@@ -140,10 +140,10 @@ Run tests: `pytest tests/ -v`
 - [x] **Phase 2** — efficiency study: before/after table (bf16, grad accum, checkpointing, flash SDPA, compile) ✅
 - [ ] **Phase 3** — flagship training + mini scaling-law study (10M→113M, fixed compute)
 - [x] **Phase 4** — KV-cache benchmark ✅, int8/int4 quantization ✅, FastAPI streaming endpoint ✅ (fast INT8 GEMM = future work)
-- [ ] **Phase 5** — SFT instruction tuning (+ DPO stretch)
-- [ ] **Phase 6** — eval harness: perplexity, downstream benchmark, ablations (RoPE vs learned, GQA vs MHA, SwiGLU vs GELU)
+- [~] **Phase 5** — SFT instruction tuning (prompt-masked loss) ✅ code + pipeline; DPO stretch TODO
+- [~] **Phase 6** — perplexity ✅, generation rubric ✅, ablation harness ✅ (RoPE/learned, GQA/MHA, SwiGLU/GELU, RMSNorm/LayerNorm); running
 - [x] **Phase 7** — fused Triton RMSNorm kernel (fwd+bwd) + correctness tests + benchmark (up to 15× fwd) ✅
-- [ ] **Phase 8** — technical writeup
+- [~] **Phase 8** — technical writeup ([WRITEUP.md](WRITEUP.md)) — drafted, scaling/ablation numbers fill in as runs finish
 
 ## Design decisions
 
