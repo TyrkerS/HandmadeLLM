@@ -140,6 +140,7 @@ def main() -> None:
 
     metrics_path = out_dir / "metrics.jsonl"
     metrics_f = open(metrics_path, "a", encoding="utf-8")
+    val_f = open(out_dir / "val.jsonl", "a", encoding="utf-8")
 
     tokens_per_step = tcfg.batch_size * tcfg.grad_accum_steps * mcfg.max_seq_len
     print(f"effective batch: {tokens_per_step:,} tokens/step")
@@ -189,6 +190,8 @@ def main() -> None:
         if step > 0 and step % tcfg.eval_interval == 0 or step == tcfg.max_steps - 1:
             val_loss = estimate_loss(model, val_data, tcfg, device, ctx)
             print(f"step {step:6d} | val loss {val_loss:.4f}")
+            val_f.write(json.dumps({"step": step, "val_loss": round(val_loss, 4)}) + "\n")
+            val_f.flush()
             if run:
                 run.log({"val_loss": val_loss}, step=step)
             state = {
@@ -205,6 +208,7 @@ def main() -> None:
             t0 = time.time()  # don't count eval time in tok/s
 
     metrics_f.close()
+    val_f.close()
     if run:
         run.finish()
     print("done.")
