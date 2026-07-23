@@ -41,6 +41,19 @@ bf16 alone is **3.2× throughput**; checkpointing cuts VRAM **12.4 → 4 GB** (u
 
 **1.94× speedup**, and it grows with context length (the whole point of the cache). Reproduce: `python scripts/bench_inference.py`.
 
+### Mini scaling law (Phase 3) — 4 sizes, fixed token budget
+
+| model | non-emb params | final val loss |
+|---|---|---|
+| tiny | 3.0M | 1.998 |
+| small | 9.7M | 1.739 |
+| med | 23.6M | 1.615 |
+| large | 45.5M | 1.540 |
+
+Power-law fit **L ≈ 2.197 · N^(−0.096)**, **R² = 0.987** across a 15× parameter range. Reproduce: `python scripts/scaling_study.py`.
+
+![Scaling law](samples/scaling.svg)
+
 ### Weight-only quantization (Phase 4) — int8 / int4 from scratch, on the trained 30M
 
 Per-row symmetric quantization ([llm/quant.py](llm/quant.py)), `lm_head` kept full-precision (tied to the embedding):

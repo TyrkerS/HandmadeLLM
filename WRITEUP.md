@@ -80,8 +80,16 @@ RMSNorm reads its input several times over HBM in the naive PyTorch version. The
 
 ## 9. Scaling study (Phase 3)
 
-<!-- SCALING: filled in from samples/scaling.md once the sweep completes -->
-*(4 sizes, fixed ~110M-token budget, loss vs non-embedding params — see `samples/scaling.svg`.)*
+Four sizes, **identical ~110M-token budget** (data-controlled), TinyStories, same LR schedule:
+
+| model | dim×layers | non-emb params | final val loss |
+|---|---|---|---|
+| tiny | 256×4 | 3.0M | 1.998 |
+| small | 384×6 | 9.7M | 1.739 |
+| med | 512×8 | 23.6M | 1.615 |
+| large | 640×10 | 45.5M | 1.540 |
+
+Fitting a power law gives **L ≈ 2.197 · N^(−0.096)** with **R² = 0.987** — a clean, monotone Chinchilla-style curve over a 15× parameter range (`samples/scaling.svg`). The diminishing returns are visible: the first 3× of params buys −0.26 loss, the next 4.7× only −0.20. Honest scope note: this is *data-controlled* (fixed tokens), not a full compute-optimal sweep, so it shows the shape, not the optimal token/param allocation.
 
 ## 10. Ablations (Phase 6)
 

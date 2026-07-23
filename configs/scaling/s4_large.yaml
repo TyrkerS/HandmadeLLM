@@ -1,0 +1,24 @@
+model:
+  dim: 640
+  n_layers: 10
+  n_heads: 10
+  n_kv_heads: 5
+  vocab_size: 8192
+  max_seq_len: 512
+train:
+  train_bin: data/tinystories/train.bin
+  val_bin: data/tinystories/val.bin
+  tokenizer_path: data/tinystories/tokenizer.json
+  batch_size: 24
+  grad_accum_steps: 6
+  max_steps: 1500
+  lr: 0.0006
+  min_lr: 6.0e-05
+  warmup_steps: 150
+  dtype: bfloat16
+  compile: true
+  out_dir: checkpoints/scaling/s4_large
+  eval_interval: 250
+  eval_iters: 50
+  log_interval: 25
+  run_name: scaling_s4_large

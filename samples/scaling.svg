@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" font-family="system-ui,sans-serif">
+<rect width="640" height="400" fill="white"/>
+<text x="320.0" y="26" font-size="15" font-weight="600" fill="#111827" text-anchor="middle">Mini scaling law — TinyStories, fixed token budget</text>
+<polyline points="60.0,85.1 287.0,214.9 455.3,276.9 580.0,314.9" fill="none" stroke="#93c5fd" stroke-width="2"/>
+<circle cx="60.0" cy="85.1" r="5" fill="#2563eb"/><text x="60.0" y="73.1" font-size="11" fill="#374151" text-anchor="middle">2.00</text><circle cx="287.0" cy="214.9" r="5" fill="#2563eb"/><text x="287.0" y="202.9" font-size="11" fill="#374151" text-anchor="middle">1.74</text><circle cx="455.3" cy="276.9" r="5" fill="#2563eb"/><text x="455.3" y="264.9" font-size="11" fill="#374151" text-anchor="middle">1.62</text><circle cx="580.0" cy="314.9" r="5" fill="#2563eb"/><text x="580.0" y="302.9" font-size="11" fill="#374151" text-anchor="middle">1.54</text><text x="60.0" y="360" font-size="11" fill="#6b7280" text-anchor="middle">3M</text><text x="287.0" y="360" font-size="11" fill="#6b7280" text-anchor="middle">10M</text><text x="455.3" y="360" font-size="11" fill="#6b7280" text-anchor="middle">24M</text><text x="580.0" y="360" font-size="11" fill="#6b7280" text-anchor="middle">45M</text>
+<text x="320.0" y="384" font-size="12" fill="#6b7280" text-anchor="middle">non-embedding parameters (log scale)</text>
+<text x="18" y="200.0" font-size="12" fill="#6b7280" text-anchor="middle" transform="rotate(-90 18 200.0)">final val loss</text>
+</svg>
