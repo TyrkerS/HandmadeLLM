@@ -41,6 +41,19 @@ bf16 alone is **3.2× throughput**; checkpointing cuts VRAM **12.4 → 4 GB** (u
 
 **1.94× speedup**, and it grows with context length (the whole point of the cache). Reproduce: `python scripts/bench_inference.py`.
 
+### Fused Triton RMSNorm kernel (Phase 7) — dim 768, bf16
+
+A hand-written fused kernel ([llm/triton_rmsnorm.py](llm/triton_rmsnorm.py), forward **and** backward), correctness-tested against the PyTorch reference (`tests/test_triton.py`, 9 cases fp32/bf16):
+
+| tokens (B×T) | torch fwd | triton fwd | fwd speedup | torch fwd+bwd | triton fwd+bwd | fwd+bwd speedup |
+|---|---|---|---|---|---|---|
+| 4,096 | 0.106 ms | 0.024 ms | **4.5×** | 0.683 ms | 0.243 ms | 2.8× |
+| 16,384 | 1.067 ms | 0.071 ms | **15.0×** | 3.131 ms | 0.385 ms | 8.1× |
+| 65,536 | 3.809 ms | 0.440 ms | **8.7×** | 13.124 ms | 2.302 ms | 5.7× |
+| 262,144 | 14.736 ms | 1.647 ms | **9.0×** | 58.134 ms | 8.702 ms | 6.7× |
+
+One SRAM pass per row vs several HBM round-trips in the reference. Reproduce: `python scripts/bench_triton.py`.
+
 ## What's implemented
 
 - **Byte-level BPE tokenizer from scratch** ([llm/bpe.py](llm/bpe.py)) — merge training with incremental pair counts, encode/decode, save/load. Fully tested, including UTF-8/emoji roundtrips.
@@ -117,7 +130,7 @@ Run tests: `pytest tests/ -v`
 - [~] **Phase 4** — KV-cache benchmark ✅ + FastAPI streaming endpoint ✅; int8/int4 quantization + serving benchmark TODO
 - [ ] **Phase 5** — SFT instruction tuning (+ DPO stretch)
 - [ ] **Phase 6** — eval harness: perplexity, downstream benchmark, ablations (RoPE vs learned, GQA vs MHA, SwiGLU vs GELU)
-- [ ] **Phase 7** — fused Triton kernel (RMSNorm) + correctness test + benchmark
+- [x] **Phase 7** — fused Triton RMSNorm kernel (fwd+bwd) + correctness tests + benchmark (up to 15× fwd) ✅
 - [ ] **Phase 8** — technical writeup
 
 ## Design decisions
