@@ -2,7 +2,44 @@
 
 A modern, Llama-style LLM built **entirely from scratch** — tokenizer, model, training loop, everything. No Hugging Face `Trainer`, no imported tokenizers. Trained, evaluated, quantized and served on a single RTX 5070 Ti (12 GB).
 
-> **Status:** Phases 0–1 complete (core implementation + verified training stack). Phases 2–8 in progress — see [Roadmap](#roadmap).
+> **Status:** Phases 0–2 done + a trained 30M model with real benchmarks. Phases 3–8 in progress — see [Roadmap](#roadmap).
+
+## Results
+
+**A 28M-param model, trained from scratch on TinyStories, generates coherent stories** (own 8k BPE tokenizer, ctx 512, ~2.6 h on one RTX 5070 Ti, final val loss **1.24**, held-out **perplexity 3.75**):
+
+> *Prompt:* **Once upon a time there was a little robot**
+> …who was very excited. He was always looking for new things to add to his collection of friends. One day, he went out for a walk. As he was walking, he saw a small box… The robot thought for a minute and then said, "Let's add something to the box!" He brought out a toy truck, and they all smiled.
+
+> *Prompt:* **The dragon was very sad because**
+> …he had no friends. He thought about all the other animals in the forest and wished he had someone to play with. One day, he had an idea. He went to the village and asked the villagers if they wanted to be his friends… *The moral of the story…*
+
+Full samples: [`samples/tinystories_30m.md`](samples/tinystories_30m.md). Coherent grammar, narrative arc, dialogue, even morals — from 28M parameters.
+
+![Training loss](samples/loss_30m.svg)
+
+### Efficiency engineering (Phase 2) — flagship 113M, RTX 5070 Ti 12 GB
+
+Each optimization applied cumulatively. This is the table that makes 12 GB enough:
+
+| setup | micro-batch × accum | tokens/s | peak VRAM (GB) |
+|---|---|---|---|
+| fp32 baseline | 8×4 | 8,893 | 12.39 (≈ card limit) |
+| + bf16 autocast | 8×4 | 28,498 | 9.33 |
+| + gradient checkpointing | 8×4 | 23,313 | **3.95** |
+| + 3× bigger micro-batch | 24×4 | 22,215 | 8.10 |
+| + torch.compile | 24×4 | **34,496** | 6.03 |
+
+bf16 alone is **3.2× throughput**; checkpointing cuts VRAM **12.4 → 4 GB** (unlocking a 3× larger batch); `torch.compile` lands at **34.5k tok/s in 6 GB**. Reproduce: `python scripts/bench_efficiency.py`.
+
+### KV-cache speedup (Phase 4) — flagship 113M, 512-token generation
+
+| mode | tokens/s | p50 (ms) | p95 (ms) |
+|---|---|---|---|
+| with KV cache | **156** | 3,285 | 3,291 |
+| without KV cache | 80 | 6,370 | 6,405 |
+
+**1.94× speedup**, and it grows with context length (the whole point of the cache). Reproduce: `python scripts/bench_inference.py`.
 
 ## What's implemented
 
@@ -29,6 +66,7 @@ Phase 0 definition-of-done (RTX 5070 Ti Laptop, Blackwell `sm_120`, torch 2.11 c
 | Throughput (bf16, batch 32×256) | **237k tok/s** |
 | Peak VRAM | 1.29 GB |
 | Test suite | 22/22 passing |
+| 30M TinyStories run | final val loss **1.24**, 12k steps, ~2.6 h |
 
 Reproduce with `python scripts/overfit_sanity.py`.
 
@@ -73,10 +111,10 @@ Run tests: `pytest tests/ -v`
 ## Roadmap
 
 - [x] **Phase 0** — env de-risk (Blackwell + cu128), repo scaffold, overfit sanity ✅
-- [x] **Phase 1** — BPE tokenizer, Llama-style model, training loop, tests ✅
-- [ ] **Phase 2** — efficiency study: before/after table (bf16, accum, checkpointing, flash SDPA, 8-bit optim)
+- [x] **Phase 1** — BPE tokenizer, Llama-style model, training loop, tests; **30M trained, coherent stories** ✅
+- [x] **Phase 2** — efficiency study: before/after table (bf16, grad accum, checkpointing, flash SDPA, compile) ✅
 - [ ] **Phase 3** — flagship training + mini scaling-law study (10M→113M, fixed compute)
-- [ ] **Phase 4** — KV-cache benchmarks, int8/int4 quantization, FastAPI streaming endpoint, serving benchmark
+- [~] **Phase 4** — KV-cache benchmark ✅ + FastAPI streaming endpoint ✅; int8/int4 quantization + serving benchmark TODO
 - [ ] **Phase 5** — SFT instruction tuning (+ DPO stretch)
 - [ ] **Phase 6** — eval harness: perplexity, downstream benchmark, ablations (RoPE vs learned, GQA vs MHA, SwiGLU vs GELU)
 - [ ] **Phase 7** — fused Triton kernel (RMSNorm) + correctness test + benchmark
