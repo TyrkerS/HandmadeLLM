@@ -120,7 +120,17 @@ def main() -> None:
         print(f"resumed from step {start_step}")
 
     if tcfg.compile:
-        model = torch.compile(model)
+        try:
+            model = torch.compile(model)
+            # trigger compilation now so failures surface before the loop
+            _probe = torch.zeros((1, mcfg.max_seq_len), dtype=torch.long, device=device)
+            with ctx:
+                model(_probe, _probe)
+            print("torch.compile: enabled")
+        except Exception as e:
+            print(f"torch.compile unavailable ({type(e).__name__}); continuing eager. "
+                  "Install triton (triton-windows on Windows) to enable it.")
+            model = raw_model(model)
 
     run = None
     if args.wandb:

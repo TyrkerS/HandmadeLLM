@@ -22,7 +22,7 @@ train:
   weight_decay: 0.1
   grad_clip: 1.0
   dtype: bfloat16
-  compile: true
+  compile: true           # requires triton (triton-windows on Windows)
   out_dir: checkpoints/tinystories_30m
   eval_interval: 500
   eval_iters: 50
