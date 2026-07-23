@@ -22,6 +22,10 @@ class ModelConfig:
     dropout: float = 0.0
     tie_weights: bool = True
     ffn_multiple_of: int = 64    # SwiGLU hidden dim rounded up to a multiple of this
+    # ablation switches (defaults = the modern Llama-style choices)
+    pos_emb: str = "rope"        # "rope" | "learned"
+    mlp: str = "swiglu"          # "swiglu" | "gelu"
+    norm: str = "rmsnorm"        # "rmsnorm" | "layernorm"
 
 
 @dataclass

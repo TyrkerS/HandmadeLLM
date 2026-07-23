@@ -94,6 +94,8 @@ class Attention(nn.Module):
         self.head_dim = cfg.dim // cfg.n_heads
         self.dropout = cfg.dropout
 
+        self.use_rope = cfg.pos_emb == "rope"
+
         self.wq = nn.Linear(cfg.dim, cfg.n_heads * self.head_dim, bias=False)
         self.wk = nn.Linear(cfg.dim, cfg.n_kv_heads * self.head_dim, bias=False)
         self.wv = nn.Linear(cfg.dim, cfg.n_kv_heads * self.head_dim, bias=False)
@@ -111,7 +113,8 @@ class Attention(nn.Module):
         k = self.wk(x).view(B, T, self.n_kv_heads, self.head_dim).transpose(1, 2)
         v = self.wv(x).view(B, T, self.n_kv_heads, self.head_dim).transpose(1, 2)
 
-        q, k = apply_rope(q, k, cos, sin)
+        if self.use_rope:
+            q, k = apply_rope(q, k, cos, sin)
 
         if cache is not None:
             k, v = cache.update(k, v)
@@ -146,13 +149,40 @@ class SwiGLU(nn.Module):
         return self.w2(F.silu(self.w1(x)) * self.w3(x))
 
 
+class GELUMLP(nn.Module):
+    """Ablation baseline: standard 4x GELU MLP (no gating), matched param count."""
+
+    def __init__(self, cfg: ModelConfig):
+        super().__init__()
+        # SwiGLU uses 3 matrices of size dim*hidden; match total params with 2*hidden'
+        hidden = int(8 * cfg.dim / 3) * 3 // 2
+        hidden = cfg.ffn_multiple_of * math.ceil(hidden / cfg.ffn_multiple_of)
+        self.fc1 = nn.Linear(cfg.dim, hidden, bias=False)
+        self.fc2 = nn.Linear(hidden, cfg.dim, bias=False)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.fc2(F.gelu(self.fc1(x)))
+
+
+def make_mlp(cfg: ModelConfig) -> nn.Module:
+    return {"swiglu": SwiGLU, "gelu": GELUMLP}[cfg.mlp](cfg)
+
+
+def make_norm(cfg: ModelConfig) -> nn.Module:
+    if cfg.norm == "rmsnorm":
+        return RMSNorm(cfg.dim, cfg.norm_eps)
+    if cfg.norm == "layernorm":
+        return nn.LayerNorm(cfg.dim, eps=cfg.norm_eps)
+    raise ValueError(f"unknown norm: {cfg.norm}")
+
+
 class Block(nn.Module):
     def __init__(self, cfg: ModelConfig):
         super().__init__()
-        self.attn_norm = RMSNorm(cfg.dim, cfg.norm_eps)
+        self.attn_norm = make_norm(cfg)
         self.attn = Attention(cfg)
-        self.mlp_norm = RMSNorm(cfg.dim, cfg.norm_eps)
-        self.mlp = SwiGLU(cfg)
+        self.mlp_norm = make_norm(cfg)
+        self.mlp = make_mlp(cfg)
 
     def forward(self, x, cos, sin, cache=None):
         x = x + self.attn(self.attn_norm(x), cos, sin, cache)
@@ -167,9 +197,10 @@ class Transformer(nn.Module):
         self.grad_checkpointing = False
 
         self.tok_emb = nn.Embedding(cfg.vocab_size, cfg.dim)
+        self.pos_emb = nn.Embedding(cfg.max_seq_len, cfg.dim) if cfg.pos_emb == "learned" else None
         self.drop = nn.Dropout(cfg.dropout)
         self.blocks = nn.ModuleList(Block(cfg) for _ in range(cfg.n_layers))
-        self.norm = RMSNorm(cfg.dim, cfg.norm_eps)
+        self.norm = make_norm(cfg)
         self.lm_head = nn.Linear(cfg.dim, cfg.vocab_size, bias=False)
         if cfg.tie_weights:
             self.lm_head.weight = self.tok_emb.weight
@@ -182,7 +213,7 @@ class Transformer(nn.Module):
         # scaled init for residual-stream output projections (GPT-2 style)
         res_std = 0.02 / math.sqrt(2 * cfg.n_layers)
         for name, p in self.named_parameters():
-            if name.endswith("wo.weight") or name.endswith("w2.weight"):
+            if name.endswith(("wo.weight", "w2.weight", "fc2.weight")):
                 nn.init.normal_(p, mean=0.0, std=res_std)
 
     @staticmethod
@@ -212,7 +243,11 @@ class Transformer(nn.Module):
         cos = self.rope_cos[start_pos : start_pos + T]
         sin = self.rope_sin[start_pos : start_pos + T]
 
-        x = self.drop(self.tok_emb(idx))
+        h = self.tok_emb(idx)
+        if self.pos_emb is not None:
+            pos = torch.arange(start_pos, start_pos + T, device=idx.device)
+            h = h + self.pos_emb(pos)[None]
+        x = self.drop(h)
         for i, block in enumerate(self.blocks):
             cache = caches[i] if caches is not None else None
             if self.grad_checkpointing and self.training:
