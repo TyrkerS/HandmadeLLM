@@ -41,6 +41,18 @@ bf16 alone is **3.2× throughput**; checkpointing cuts VRAM **12.4 → 4 GB** (u
 
 **1.94× speedup**, and it grows with context length (the whole point of the cache). Reproduce: `python scripts/bench_inference.py`.
 
+### Weight-only quantization (Phase 4) — int8 / int4 from scratch, on the trained 30M
+
+Per-row symmetric quantization ([llm/quant.py](llm/quant.py)), `lm_head` kept full-precision (tied to the embedding):
+
+| precision | linear weights | held-out perplexity | vs fp |
+|---|---|---|---|
+| fp baseline | 111 MB | 3.42 | — |
+| **int8** | 40 MB | 3.42 | **2.7× smaller, +0.0% ppl** |
+| **int4** | 29 MB | 3.61 | **3.9× smaller, +5.5% ppl** |
+
+int8 is a free memory win; int4 trades ~5% perplexity for another ~30% off. (Throughput here is dequant→bf16-matmul, so it doesn't beat fp — a fast INT8 GEMM is future work; the measured trade-off is quality vs size.) Reproduce: `python scripts/bench_quant.py`.
+
 ### Fused Triton RMSNorm kernel (Phase 7) — dim 768, bf16
 
 A hand-written fused kernel ([llm/triton_rmsnorm.py](llm/triton_rmsnorm.py), forward **and** backward), correctness-tested against the PyTorch reference (`tests/test_triton.py`, 9 cases fp32/bf16):
@@ -127,7 +139,7 @@ Run tests: `pytest tests/ -v`
 - [x] **Phase 1** — BPE tokenizer, Llama-style model, training loop, tests; **30M trained, coherent stories** ✅
 - [x] **Phase 2** — efficiency study: before/after table (bf16, grad accum, checkpointing, flash SDPA, compile) ✅
 - [ ] **Phase 3** — flagship training + mini scaling-law study (10M→113M, fixed compute)
-- [~] **Phase 4** — KV-cache benchmark ✅ + FastAPI streaming endpoint ✅; int8/int4 quantization + serving benchmark TODO
+- [x] **Phase 4** — KV-cache benchmark ✅, int8/int4 quantization ✅, FastAPI streaming endpoint ✅ (fast INT8 GEMM = future work)
 - [ ] **Phase 5** — SFT instruction tuning (+ DPO stretch)
 - [ ] **Phase 6** — eval harness: perplexity, downstream benchmark, ablations (RoPE vs learned, GQA vs MHA, SwiGLU vs GELU)
 - [x] **Phase 7** — fused Triton RMSNorm kernel (fwd+bwd) + correctness tests + benchmark (up to 15× fwd) ✅
