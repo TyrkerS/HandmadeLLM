@@ -66,6 +66,20 @@ Per-row symmetric quantization ([llm/quant.py](llm/quant.py)), `lm_head` kept fu
 
 int8 is a free memory win; int4 trades ~5% perplexity for another ~30% off. (Throughput here is dequant→bf16-matmul, so it doesn't beat fp — a fast INT8 GEMM is future work; the measured trade-off is quality vs size.) Reproduce: `python scripts/bench_quant.py`.
 
+### Architecture ablations (Phase 6) — numbers, not opinions
+
+Single change at a time vs the modern baseline, fixed budget on TinyStories:
+
+| change | val loss | Δ |
+|---|---|---|
+| baseline (RoPE+SwiGLU+RMSNorm+GQA) | 1.813 | — |
+| RoPE → learned pos-emb | 1.891 | +0.078 |
+| SwiGLU → GELU MLP | 1.860 | +0.047 |
+| RMSNorm → LayerNorm | 1.810 | −0.003 |
+| GQA → full MHA | 1.798 | −0.014 |
+
+RoPE and SwiGLU clearly earn their place; RMSNorm is chosen for being cheaper (quality-neutral here); GQA trades 0.014 loss for a 3× smaller KV cache. Reproduce: `python scripts/ablations.py`.
+
 ### Fused Triton RMSNorm kernel (Phase 7) — dim 768, bf16
 
 A hand-written fused kernel ([llm/triton_rmsnorm.py](llm/triton_rmsnorm.py), forward **and** backward), correctness-tested against the PyTorch reference (`tests/test_triton.py`, 9 cases fp32/bf16):
@@ -154,7 +168,7 @@ Run tests: `pytest tests/ -v`
 - [ ] **Phase 3** — flagship training + mini scaling-law study (10M→113M, fixed compute)
 - [x] **Phase 4** — KV-cache benchmark ✅, int8/int4 quantization ✅, FastAPI streaming endpoint ✅ (fast INT8 GEMM = future work)
 - [~] **Phase 5** — SFT instruction tuning (prompt-masked loss) ✅ code + pipeline; DPO stretch TODO
-- [~] **Phase 6** — perplexity ✅, generation rubric ✅, ablation harness ✅ (RoPE/learned, GQA/MHA, SwiGLU/GELU, RMSNorm/LayerNorm); running
+- [x] **Phase 6** — perplexity ✅, generation rubric ✅, ablation table ✅ (RoPE/learned, GQA/MHA, SwiGLU/GELU, RMSNorm/LayerNorm) ✅
 - [x] **Phase 7** — fused Triton RMSNorm kernel (fwd+bwd) + correctness tests + benchmark (up to 15× fwd) ✅
 - [~] **Phase 8** — technical writeup ([WRITEUP.md](WRITEUP.md)) — drafted, scaling/ablation numbers fill in as runs finish
 

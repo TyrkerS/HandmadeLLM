@@ -93,8 +93,22 @@ Fitting a power law gives **L ≈ 2.197 · N^(−0.096)** with **R² = 0.987** �
 
 ## 10. Ablations (Phase 6)
 
-<!-- ABLATIONS: filled in from samples/ablations.md -->
-*(single-change-at-a-time vs the modern baseline — see `samples/ablations.md`.)*
+One architectural change at a time vs the modern baseline (RoPE + SwiGLU + RMSNorm + GQA), same fixed budget on TinyStories:
+
+| change | final val loss | Δ vs baseline |
+|---|---|---|
+| — (baseline) | 1.813 | — |
+| RoPE → learned pos-emb | 1.891 | **+0.078** |
+| SwiGLU → GELU MLP | 1.860 | **+0.047** |
+| RMSNorm → LayerNorm | 1.810 | −0.003 |
+| GQA → full MHA | 1.798 | −0.014 |
+
+What the numbers actually say — and where they refuse to flatter the defaults:
+
+- **RoPE earns its place** (+0.078 without it): the single biggest architectural lever here.
+- **SwiGLU earns its place** (+0.047 without it), at matched parameter count.
+- **RMSNorm is a wash on quality** (−0.003) — so I keep it for being *cheaper*, not more accurate. Honest: at this scale LayerNorm would lose nothing in loss.
+- **GQA costs a hair of loss** (MHA is 0.014 better) but buys a **3× smaller KV cache**. That's the trade I'd make every time for inference, and it's why production models do too — but the ablation is honest that it *is* a (tiny) trade, not a free win.
 
 ## 11. What didn't work / what I'd do differently
 
