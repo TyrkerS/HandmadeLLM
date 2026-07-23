@@ -16,6 +16,7 @@ A modern, Llama-style LLM built **entirely from scratch** — tokenizer, model, 
 - **Hand-written training loop** ([llm/train.py](llm/train.py)) — AdamW with decay/no-decay groups, bf16 autocast, gradient accumulation, gradient clipping, cosine LR with warmup, gradient checkpointing, `torch.compile`, checkpoint/resume, JSONL metrics + optional W&B.
 - **Data pipeline** ([scripts/prepare_tinystories.py](scripts/prepare_tinystories.py)) — TinyStories → own tokenizer → uint16 memmap bins, multiprocess tokenization.
 - **Test suite** ([tests/](tests/)) — causality, KV-cache equivalence, RoPE relative-position property, GQA shapes, BPE roundtrips, overfit smoke test.
+- **Serving + eval scaffolding** — FastAPI streaming endpoint ([serve/app.py](serve/app.py)), KV-cache speedup benchmark ([scripts/bench_inference.py](scripts/bench_inference.py)), efficiency benchmark ([scripts/bench_efficiency.py](scripts/bench_efficiency.py)), held-out perplexity ([llm/eval.py](llm/eval.py)).
 
 ## Verified on hardware
 
@@ -50,6 +51,11 @@ python -m llm.train --config configs/tinystories_30m.yaml
 
 # 5. Generate
 python -m llm.sample --ckpt checkpoints/tinystories_30m/best.pt --prompt "Once upon a time"
+
+# 6. Evaluate + serve
+python -m llm.eval --ckpt checkpoints/tinystories_30m/best.pt --bin data/tinystories/val.bin
+python scripts/bench_inference.py --ckpt checkpoints/tinystories_30m/best.pt   # KV-cache speedup
+HLLM_CKPT=checkpoints/tinystories_30m/best.pt uvicorn serve.app:app --port 8000
 ```
 
 Run tests: `pytest tests/ -v`
