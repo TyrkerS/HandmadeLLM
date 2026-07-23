@@ -14,12 +14,12 @@ train:
   train_bin: data/tinystories16k/train.bin
   val_bin: data/tinystories16k/val.bin
   tokenizer_path: data/tinystories16k/tokenizer.json
-  batch_size: 8
-  grad_accum_steps: 64         # effective batch = 8*64*1024 = 524k tokens
-  max_steps: 20000
+  batch_size: 20
+  grad_accum_steps: 8          # effective batch = 20*8*1024 = 164k tokens
+  max_steps: 4000              # ~655M tokens — TinyStories converges well before 1B
   lr: 3.0e-4
   min_lr: 3.0e-5
-  warmup_steps: 2000
+  warmup_steps: 300
   weight_decay: 0.1
   grad_clip: 1.0
   dtype: bfloat16
