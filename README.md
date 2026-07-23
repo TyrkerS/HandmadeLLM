@@ -66,6 +66,15 @@ Per-row symmetric quantization ([llm/quant.py](llm/quant.py)), `lm_head` kept fu
 
 int8 is a free memory win; int4 trades ~5% perplexity for another ~30% off. (Throughput here is dequant→bf16-matmul, so it doesn't beat fp — a fast INT8 GEMM is future work; the measured trade-off is quality vs size.) Reproduce: `python scripts/bench_quant.py`.
 
+### Instruction tuning (Phase 5) — before vs after SFT
+
+Fine-tuned the 30M base on 30k TinyStories-Instruct pairs with **prompt-masked loss** (SFT val loss 1.14). Same prompt, `Words: dog, jump, happy`:
+
+- **Before:** rambles, ignores the required words, leaks spurious `Story:`/`Apparent:` tokens.
+- **After:** *"Once upon a time, there was a happy dog. The dog loved to play and jump all day…"* — uses every required word, follows the summary.
+
+Full before/after: [`samples/sft_before_after.md`](samples/sft_before_after.md). Reproduce: `python scripts/sft_compare.py --ckpt checkpoints/sft_30m/best.pt --label after`.
+
 ### Architecture ablations (Phase 6) — numbers, not opinions
 
 Single change at a time vs the modern baseline, fixed budget on TinyStories:
@@ -167,7 +176,7 @@ Run tests: `pytest tests/ -v`
 - [x] **Phase 2** — efficiency study: before/after table (bf16, grad accum, checkpointing, flash SDPA, compile) ✅
 - [ ] **Phase 3** — flagship training + mini scaling-law study (10M→113M, fixed compute)
 - [x] **Phase 4** — KV-cache benchmark ✅, int8/int4 quantization ✅, FastAPI streaming endpoint ✅ (fast INT8 GEMM = future work)
-- [~] **Phase 5** — SFT instruction tuning (prompt-masked loss) ✅ code + pipeline; DPO stretch TODO
+- [x] **Phase 5** — SFT instruction tuning ✅ (val loss 1.14, clear before/after); DPO stretch TODO
 - [x] **Phase 6** — perplexity ✅, generation rubric ✅, ablation table ✅ (RoPE/learned, GQA/MHA, SwiGLU/GELU, RMSNorm/LayerNorm) ✅
 - [x] **Phase 7** — fused Triton RMSNorm kernel (fwd+bwd) + correctness tests + benchmark (up to 15× fwd) ✅
 - [~] **Phase 8** — technical writeup ([WRITEUP.md](WRITEUP.md)) — drafted, scaling/ablation numbers fill in as runs finish
