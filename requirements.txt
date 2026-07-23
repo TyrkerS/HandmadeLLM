@@ -1,0 +1,18 @@
+# Core (install torch with the cu128 index for Blackwell/sm_120):
+#   pip install torch --index-url https://download.pytorch.org/whl/cu128
+torch>=2.7
+numpy
+pyyaml
+tqdm
+
+# Data pipeline
+datasets
+
+# Dev
+pytest
+
+# Optional
+# wandb          # experiment tracking (train.py --wandb)
+# fastapi        # Phase 4 serving
+# uvicorn        # Phase 4 serving
+# bitsandbytes   # Phase 2 8-bit optimizer

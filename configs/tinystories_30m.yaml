@@ -1,0 +1,30 @@
+# ~28M params — Phase 1 workhorse. Converges to coherent stories in a few hours on a 5070 Ti.
+model:
+  dim: 512
+  n_layers: 8
+  n_heads: 8
+  n_kv_heads: 4
+  vocab_size: 8192
+  max_seq_len: 512
+  rope_theta: 10000.0
+  dropout: 0.0
+
+train:
+  train_bin: data/tinystories/train.bin
+  val_bin: data/tinystories/val.bin
+  tokenizer_path: data/tinystories/tokenizer.json
+  batch_size: 32
+  grad_accum_steps: 8          # effective batch = 32*8*512 = 131k tokens
+  max_steps: 12000
+  lr: 6.0e-4
+  min_lr: 6.0e-5
+  warmup_steps: 1000
+  weight_decay: 0.1
+  grad_clip: 1.0
+  dtype: bfloat16
+  compile: true
+  out_dir: checkpoints/tinystories_30m
+  eval_interval: 500
+  eval_iters: 50
+  log_interval: 10
+  run_name: tinystories_30m
