@@ -1,5 +1,7 @@
 # HandmadeLLM
 
+![CI](https://github.com/<your-username>/HandmadeLLM/actions/workflows/ci.yml/badge.svg) &nbsp;![license](https://img.shields.io/badge/license-MIT-blue)
+
 A modern, Llama-style LLM built **entirely from scratch** — tokenizer, model, training loop, everything. No Hugging Face `Trainer`, no imported tokenizers. Trained, evaluated, quantized and served on a single RTX 5070 Ti (12 GB).
 
 > **Status:** all 8 phases complete, incl. the DPO stretch — from BPE merges to a fused Triton kernel. Two trained models (30M + 113M flagship), every number below reproducible. See [Roadmap](#roadmap).
@@ -186,6 +188,20 @@ HLLM_CKPT=checkpoints/tinystories_30m/best.pt uvicorn serve.app:app --port 8000
 ```
 
 Run tests: `pytest tests/ -v`
+
+### Play with it (demo) & weights
+
+```bash
+# interactive Gradio demo — type a prompt, watch the story stream
+pip install -r requirements-serve.txt
+HLLM_CKPT=checkpoints/tinystories_30m/best.pt python -m serve.demo
+
+# or serve with Docker
+docker build -t handmadellm . && docker run -p 8000:8000 \
+  -v $PWD/checkpoints:/app/checkpoints handmadellm
+```
+
+Checkpoints are gitignored (300 MB / 1.3 GB) — they belong on the HF Hub. Publish them with `python scripts/upload_to_hf.py --ckpt <ckpt> --repo <user>/handmadellm-30m --tokenizer <tok>` (generates a model card). *Live weights + Space: TODO — links go here.*
 
 ## Architecture
 

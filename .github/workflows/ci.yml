@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install CPU deps
+        run: |
+          python -m pip install --upgrade pip
+          # CPU-only torch for CI (the cu128 build is only needed to train on GPU)
+          pip install torch==2.11.0 --index-url https://download.pytorch.org/whl/cpu
+          pip install numpy PyYAML pytest
+
+      - name: Run CPU test suite
+        # GPU/Triton tests skip themselves when CUDA is unavailable; every other
+        # test is hermetic (no dataset downloads), so the full suite runs on CPU.
+        run: pytest tests/ -v

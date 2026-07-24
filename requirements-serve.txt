@@ -1,0 +1,4 @@
+# Serving + interactive demo extras (Phase 4). Install on top of requirements.txt.
+fastapi==0.115.6
+uvicorn==0.34.0
+gradio==5.9.1

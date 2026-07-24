@@ -1,23 +1,20 @@
-# Core (install torch with the cu128 index for Blackwell/sm_120):
-#   pip install torch --index-url https://download.pytorch.org/whl/cu128
-torch>=2.7
-numpy
-pyyaml
-tqdm
+# Core — pinned for reproducibility.
+# torch is a Blackwell/sm_120 build; install it from the cu128 index FIRST:
+#   pip install torch==2.11.0 --index-url https://download.pytorch.org/whl/cu128
+# then: pip install -r requirements.txt
+torch==2.11.0
+numpy==2.4.6
+PyYAML==6.0.3
+tqdm==4.69.0
 
 # Data pipeline
-datasets
+datasets==5.0.0
+pyarrow==25.0.0
 
-# Dev
-pytest
+# Dev / tests
+pytest==9.1.1
 
-# Serving (Phase 4)
-fastapi
-uvicorn
-
-# Compile / Triton kernels (Phase 7). On Windows use: pip install triton-windows
-# triton
-
-# Optional
-# wandb          # experiment tracking (train.py --wandb)
-# bitsandbytes   # Phase 2 8-bit optimizer (recent build for Blackwell)
+# ---- optional extras (install as needed) ----
+# Serving (Phase 4):        pip install -r requirements-serve.txt
+# Compile / Triton kernels: pip install triton-windows   (Windows) or triton (Linux)
+# Experiment tracking:      pip install wandb   (train/sft with --wandb)
