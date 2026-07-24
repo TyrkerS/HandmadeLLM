@@ -115,6 +115,8 @@ RoPE and SwiGLU clearly earn their place; RMSNorm is chosen for being cheaper (q
 
 **Downstream benchmark — Story-Cloze** ([llm/benchmark_cloze.py](llm/benchmark_cloze.py)): does the model prefer the true last sentence of a held-out story over a distractor ending from another story? Tests coherence, not fluency (chance = 0.50). 30M scores **0.956**, flagship **0.930**. `python -m llm.benchmark_cloze --ckpt checkpoints/tinystories_30m/best.pt`.
 
+**Bits-per-byte — the fair cross-tokenizer metric.** Perplexity can't rank the 8k-vocab 30M against the 16k-vocab flagship; bits-per-byte (NLL ÷ UTF-8 bytes) can: 30M **0.4556** vs flagship **0.4537** (↓ better). The flagship *is* better on the fair metric (so the Story-Cloze gap was noise) — but only 0.4% for 4× the params, which honestly flags that the **flagship is under-trained** (655M tokens ≈ 5.8 tok/param vs Chinchilla ~20); it's the top "what I'd fix next."
+
 ### Fused Triton RMSNorm kernel (Phase 7) — dim 768, bf16
 
 A hand-written fused kernel ([llm/triton_rmsnorm.py](llm/triton_rmsnorm.py), forward **and** backward), correctness-tested against the PyTorch reference (`tests/test_triton.py`, 9 cases fp32/bf16):

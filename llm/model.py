@@ -225,10 +225,12 @@ class Transformer(nn.Module):
 
     def num_params(self, non_embedding: bool = False) -> int:
         n = sum(p.numel() for p in self.parameters())
-        if non_embedding and not self.cfg.tie_weights:
+        if non_embedding:
+            # subtract the token embedding (tied lm_head shares this same matrix,
+            # so it's counted once) and the learned pos-emb if present
             n -= self.tok_emb.weight.numel()
-        elif non_embedding:
-            n -= self.tok_emb.weight.numel()  # tied: subtract the shared matrix once
+            if self.pos_emb is not None:
+                n -= self.pos_emb.weight.numel()
         return n
 
     def forward(

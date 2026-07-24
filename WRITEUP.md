@@ -45,7 +45,14 @@ Honest failure modes: occasional logical slips ("a small box. It was a very big 
 
 The headline model: dim 768, 16 layers, GQA 12q/4kv, **1024 context, 16k BPE**, 113M params. It only fits and trains at a reasonable speed *because* of the Phase 2 efficiency work — bf16 + gradient checkpointing + compile keep it at **5.3 GB peak** and ~34k tok/s, so 4000 steps (~655M tokens) finished in ~5 h. Final val loss 1.26, perplexity 3.71. Qualitatively it's a clear step up: named characters, richer vocabulary, longer arcs (`samples/flagship_113m.md`).
 
-An honest measurement note: the flagship's per-token val loss (1.26) is **not** comparable to the 30M's (1.24) — they use different tokenizers, and a 16k vocab packs more information per token, so per-token cross-entropy is naturally higher. Bits-per-byte would be the fair cross-tokenizer metric; I report both models' numbers but don't pretend the raw losses rank them.
+An honest measurement note: the flagship's per-token val loss (1.26) is **not** comparable to the 30M's (1.24) — they use different tokenizers, and a 16k vocab packs more information per token, so per-token cross-entropy is naturally higher. The fair cross-tokenizer metric is **bits-per-byte** (total NLL ÷ UTF-8 bytes), which I compute directly ([llm/eval.py](llm/eval.py)):
+
+| model | val bits-per-byte (lower is better) |
+|---|---|
+| 30M (8k vocab) | 0.4556 |
+| flagship 113M (16k vocab) | **0.4537** |
+
+So the flagship *is* the better model on the fair metric — which also means the Story-Cloze gap (0.930 vs 0.956) was tokenizer/sampling noise, not a real regression. **But** the margin is tiny (0.4%) for 4× the parameters, and that's the tell: **the flagship is under-trained.** At 655M tokens it saw only ~5.8 tokens/param, far below the Chinchilla-optimal ~20 (≈2.3B tokens). A properly-budgeted rerun (3–4× longer) should open a real gap; it's the clearest "what I'd fix next" in this project, and the honest reason the headline model doesn't yet dominate.
 
 ## 6. Making 12 GB enough (Phase 2)
 
