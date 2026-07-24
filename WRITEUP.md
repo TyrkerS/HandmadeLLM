@@ -125,7 +125,13 @@ Prompt format: `Features:` / `Words:` (the story must use them) / `Summary:` (th
 - **Before** (base model): treats the fields as noise — rambles, ignores the required words, leaks literal `Story:`/`Apparent:` tokens.
 - **After** (SFT): reliably incorporates every required word and matches the summary. Given *dog, jump, happy* it writes a story about a happy dog that jumps; given *boat, river, brave* it writes a brave girl sailing a boat down a river.
 
-Full before/after in `samples/sft_before_after.md`. DPO (preference alignment) is the natural next stretch and is scoped but not yet built.
+Full before/after in `samples/sft_before_after.md`.
+
+### DPO — preference alignment (stretch)
+
+I also implemented **Direct Preference Optimization from scratch** ([llm/dpo.py](llm/dpo.py)): the DPO loss with a frozen reference model (the SFT model), sequence log-probs over response tokens, no reward model or RL. Preference pairs use the real story as *chosen* and a base-model generation as *rejected*. Starting from the SFT checkpoint, held-out **preference accuracy rose 0.70 → 0.97** (fraction of pairs where the model scores the gold story above the base ramble).
+
+Honest caveat: the implicit-reward margins over-optimized (log-prob diffs in the hundreds, train accuracy → 1.0 fast). Outputs stayed coherent because SFT anchored them, but I'd temper a real run with a higher β (0.3–0.5) and early stopping. Details in `samples/dpo_results.md`.
 
 ## 11. What didn't work / what I'd do differently
 

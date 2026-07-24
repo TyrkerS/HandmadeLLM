@@ -84,6 +84,8 @@ Fine-tuned the 30M base on 30k TinyStories-Instruct pairs with **prompt-masked l
 
 Full before/after: [`samples/sft_before_after.md`](samples/sft_before_after.md). Reproduce: `python scripts/sft_compare.py --ckpt checkpoints/sft_30m/best.pt --label after`.
 
+**DPO (stretch) — preference alignment from scratch** ([llm/dpo.py](llm/dpo.py)): DPO loss with a frozen reference model, no reward model or RL. From the SFT checkpoint, held-out **preference accuracy rose 0.70 → 0.97**. Honest caveat on reward over-optimization + reproduce steps in [`samples/dpo_results.md`](samples/dpo_results.md).
+
 ### Architecture ablations (Phase 6) — numbers, not opinions
 
 Single change at a time vs the modern baseline, fixed budget on TinyStories:
@@ -185,7 +187,7 @@ Run tests: `pytest tests/ -v`
 - [x] **Phase 2** — efficiency study: before/after table (bf16, grad accum, checkpointing, flash SDPA, compile) ✅
 - [x] **Phase 3** — flagship 113M trained (val 1.26, ~5h) + mini scaling-law study ✅
 - [x] **Phase 4** — KV-cache benchmark ✅, int8/int4 quantization ✅, FastAPI streaming endpoint ✅ (fast INT8 GEMM = future work)
-- [x] **Phase 5** — SFT instruction tuning ✅ (val loss 1.14, clear before/after); DPO stretch TODO
+- [x] **Phase 5** — SFT instruction tuning ✅ (val 1.14) + **DPO** ✅ (preference acc 0.70→0.97)
 - [x] **Phase 6** — perplexity ✅, generation rubric ✅, ablation table ✅ (RoPE/learned, GQA/MHA, SwiGLU/GELU, RMSNorm/LayerNorm) ✅
 - [x] **Phase 7** — fused Triton RMSNorm kernel (fwd+bwd) + correctness tests + benchmark (up to 15× fwd) ✅
 - [~] **Phase 8** — technical writeup ([WRITEUP.md](WRITEUP.md)) — drafted, scaling/ablation numbers fill in as runs finish
