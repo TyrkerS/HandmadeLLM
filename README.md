@@ -2,7 +2,20 @@
 
 A modern, Llama-style LLM built **entirely from scratch** — tokenizer, model, training loop, everything. No Hugging Face `Trainer`, no imported tokenizers. Trained, evaluated, quantized and served on a single RTX 5070 Ti (12 GB).
 
-> **Status:** Phases 0–2 done + a trained 30M model with real benchmarks. Phases 3–8 in progress — see [Roadmap](#roadmap).
+> **Status:** all 8 phases complete, incl. the DPO stretch — from BPE merges to a fused Triton kernel. Two trained models (30M + 113M flagship), every number below reproducible. See [Roadmap](#roadmap).
+
+**One project that is really three** — an LLM from scratch, an eval harness, and inference optimization:
+
+| what | headline number |
+|---|---|
+| Flagship 113M trained from scratch | val loss 1.26, ~5 h, **5.3 GB** peak on a 12 GB card |
+| Efficiency stack (Phase 2) | bf16 **3.2×** throughput; checkpointing **12.4 → 4 GB** VRAM |
+| Scaling law (Phase 3) | **L = 2.197·N^−0.096**, R² = 0.987 |
+| Quantization (Phase 4) | int8 **2.7× smaller, +0.0%** perplexity |
+| Instruction tuning (Phase 5) | SFT clear before/after; **DPO 0.70 → 0.97** preference acc |
+| Ablations (Phase 6) | RoPE +0.078, SwiGLU +0.047 (numbers, not opinions) |
+| Fused Triton RMSNorm (Phase 7) | up to **15×** forward vs PyTorch |
+| Tests | **58 passing** |
 
 ## Results
 
@@ -180,7 +193,27 @@ Run tests: `pytest tests/ -v`
 | heads (q / kv) | 8 / 4 | 12 / 4 |
 | context | 512 | 1024 |
 | vocab (own BPE) | 8,192 | 16,384 |
-| effective batch | 131k tok | 524k tok |
+| effective batch | 131k tok | 164k tok |
+
+## Project structure
+
+```
+llm/            core library (all hand-written)
+  bpe.py          byte-level BPE tokenizer (merge training + encode/decode)
+  model.py        Llama-style transformer: RoPE, RMSNorm, GQA, SwiGLU, KV cache
+  train.py        training loop (AdamW, bf16, grad accum/checkpointing, cosine LR)
+  sft.py          instruction tuning (prompt-masked loss)
+  dpo.py          Direct Preference Optimization (frozen reference model)
+  quant.py        int8/int4 weight-only quantization
+  triton_rmsnorm.py   fused Triton RMSNorm kernel (fwd + bwd)
+  eval.py / rubric.py / benchmark_cloze.py   eval harness
+configs/        versioned experiment configs (30M, flagship, scaling/, ablations/)
+scripts/        data prep + benchmarks (efficiency, inference, quant, triton, scaling)
+serve/          FastAPI streaming endpoint
+tests/          58 tests (correctness, KV-cache equivalence, RoPE, DPO, quant, ...)
+samples/        generation samples, loss curves, scaling/ablation/DPO results
+WRITEUP.md      the honest engineering log
+```
 
 ## Roadmap
 
@@ -190,9 +223,11 @@ Run tests: `pytest tests/ -v`
 - [x] **Phase 3** — flagship 113M trained (val 1.26, ~5h) + mini scaling-law study ✅
 - [x] **Phase 4** — KV-cache benchmark ✅, int8/int4 quantization ✅, FastAPI streaming endpoint ✅ (fast INT8 GEMM = future work)
 - [x] **Phase 5** — SFT instruction tuning ✅ (val 1.14) + **DPO** ✅ (preference acc 0.70→0.97)
-- [x] **Phase 6** — perplexity ✅, generation rubric ✅, ablation table ✅ (RoPE/learned, GQA/MHA, SwiGLU/GELU, RMSNorm/LayerNorm) ✅
+- [x] **Phase 6** — perplexity ✅, generation rubric ✅, ablations ✅, Story-Cloze downstream benchmark ✅
 - [x] **Phase 7** — fused Triton RMSNorm kernel (fwd+bwd) + correctness tests + benchmark (up to 15× fwd) ✅
-- [~] **Phase 8** — technical writeup ([WRITEUP.md](WRITEUP.md)) — drafted, scaling/ablation numbers fill in as runs finish
+- [x] **Phase 8** — technical writeup ([WRITEUP.md](WRITEUP.md)) with all real numbers + a "what didn't work" section ✅
+
+*Optional future work:* a fast INT8 GEMM (quant currently saves memory, not latency) and a fused attention kernel.
 
 ## Design decisions
 
