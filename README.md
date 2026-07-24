@@ -6,7 +6,16 @@ A modern, Llama-style LLM built **entirely from scratch** — tokenizer, model, 
 
 ## Results
 
-**A 28M-param model, trained from scratch on TinyStories, generates coherent stories** (own 8k BPE tokenizer, ctx 512, ~2.6 h on one RTX 5070 Ti, final val loss **1.24**, held-out **perplexity 3.75**):
+**The flagship: a 113M-param model** (dim 768, 16 layers, GQA 12q/4kv, 1024 context, own 16k BPE), trained from scratch in **~5 h on one RTX 5070 Ti** (5.3 GB peak thanks to the Phase 2 efficiency stack), final val loss **1.26**, perplexity **3.71**:
+
+> *Prompt:* **Once upon a time there was a little robot**
+> …named Jake. Jake was very excited to explore the world. He had never seen so many wonders before! He went to the park and saw a pond full of ice and sparkling water… Soon, the sun started to set and Jake had to go home. He was sad to leave, but he knew he'd be back soon.
+
+Named characters, richer vocabulary, 1024-token context. Full samples: [`samples/flagship_113m.md`](samples/flagship_113m.md).
+
+![Flagship loss](samples/loss_flagship.svg)
+
+**The 28M workhorse**, trained from scratch on TinyStories (own 8k BPE tokenizer, ctx 512, ~2.6 h, final val loss **1.24**, held-out **perplexity 3.75**):
 
 > *Prompt:* **Once upon a time there was a little robot**
 > …who was very excited. He was always looking for new things to add to his collection of friends. One day, he went out for a walk. As he was walking, he saw a small box… The robot thought for a minute and then said, "Let's add something to the box!" He brought out a toy truck, and they all smiled.
@@ -174,7 +183,7 @@ Run tests: `pytest tests/ -v`
 - [x] **Phase 0** — env de-risk (Blackwell + cu128), repo scaffold, overfit sanity ✅
 - [x] **Phase 1** — BPE tokenizer, Llama-style model, training loop, tests; **30M trained, coherent stories** ✅
 - [x] **Phase 2** — efficiency study: before/after table (bf16, grad accum, checkpointing, flash SDPA, compile) ✅
-- [ ] **Phase 3** — flagship training + mini scaling-law study (10M→113M, fixed compute)
+- [x] **Phase 3** — flagship 113M trained (val 1.26, ~5h) + mini scaling-law study ✅
 - [x] **Phase 4** — KV-cache benchmark ✅, int8/int4 quantization ✅, FastAPI streaming endpoint ✅ (fast INT8 GEMM = future work)
 - [x] **Phase 5** — SFT instruction tuning ✅ (val loss 1.14, clear before/after); DPO stretch TODO
 - [x] **Phase 6** — perplexity ✅, generation rubric ✅, ablation table ✅ (RoPE/learned, GQA/MHA, SwiGLU/GELU, RMSNorm/LayerNorm) ✅

@@ -41,6 +41,12 @@ A 28M-param model (dim 512, 8 layers, GQA 8q/4kv, ctx 512, own 8k BPE), trained 
 
 Honest failure modes: occasional logical slips ("a small box. It was a very big box"), and it sometimes trails off at the token budget. Expected at 28M — the point is coherence, not a production assistant.
 
+### The flagship (113M)
+
+The headline model: dim 768, 16 layers, GQA 12q/4kv, **1024 context, 16k BPE**, 113M params. It only fits and trains at a reasonable speed *because* of the Phase 2 efficiency work — bf16 + gradient checkpointing + compile keep it at **5.3 GB peak** and ~34k tok/s, so 4000 steps (~655M tokens) finished in ~5 h. Final val loss 1.26, perplexity 3.71. Qualitatively it's a clear step up: named characters, richer vocabulary, longer arcs (`samples/flagship_113m.md`).
+
+An honest measurement note: the flagship's per-token val loss (1.26) is **not** comparable to the 30M's (1.24) — they use different tokenizers, and a 16k vocab packs more information per token, so per-token cross-entropy is naturally higher. Bits-per-byte would be the fair cross-tokenizer metric; I report both models' numbers but don't pretend the raw losses rank them.
+
 ## 6. Making 12 GB enough (Phase 2)
 
 This is the part that's actually ML *engineering*. The flagship 113M config, each optimization applied cumulatively:
