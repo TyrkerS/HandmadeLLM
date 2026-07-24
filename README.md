@@ -134,7 +134,14 @@ One SRAM pass per row vs several HBM round-trips in the reference. Reproduce: `p
 
 ### Fused causal attention Triton kernel (Phase 7, elite)
 
-A FlashAttention-style **forward** kernel ([llm/triton_attention.py](llm/triton_attention.py)): online softmax, never materializes the T×T scores (**O(T) memory vs O(T²)**), causal + boundary masks, GQA via KV expansion. Correctness-tested against SDPA (10 cases) and wired into the model as an optional inference path (`model.use_triton_attention()`) matching SDPA to 8e-4. SDPA is itself a flash kernel, so it's the ceiling, not a rival — the point is a correct hand-written fused attention + the memory win over naive. Benchmark: `python scripts/bench_attention.py`.
+A FlashAttention-style **forward** kernel ([llm/triton_attention.py](llm/triton_attention.py)): online softmax, never materializes the T×T scores (**O(T) memory vs O(T²)**), causal + boundary masks, GQA via KV expansion. Correctness-tested against SDPA (10 cases), wired into the model as an optional path (`model.use_triton_attention()`, matches SDPA to 8e-4). Benchmark (B=4 H=12 D=64 fp16, causal):
+
+| seq len | naive | **triton** | sdpa | naive mem | **triton mem** | sdpa mem |
+|---|---|---|---|---|---|---|
+| 2048 | 9.34 ms | **1.15 ms** | 1.09 ms | 868 MB | **59 MB** | 59 MB |
+| 4096 | 46.53 ms | **4.04 ms** | 4.19 ms | 3347 MB | **109 MB** | 109 MB |
+
+At 4k tokens: **11.5× faster and 30× lighter than naive**, and it **matches PyTorch's SDPA** (the production flash kernel) on both — hitting the ceiling with a hand-written kernel, not beating a strawman. `python scripts/bench_attention.py`.
 
 ## What's implemented
 

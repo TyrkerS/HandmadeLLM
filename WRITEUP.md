@@ -97,7 +97,17 @@ RMSNorm was the warm-up; **attention is the real fused-kernel jump.** I wrote a 
 
 Correctness is pinned against `F.scaled_dot_product_attention` across 10 cases (causal / non-causal, T not a multiple of the block, and GQA via KV expansion), and it's wired into the model as an optional inference path (`model.use_triton_attention()`) that matches the SDPA path end-to-end to 8e-4.
 
-Honest scope: this is **forward-only** (inference). PyTorch's SDPA is itself a flash kernel, so it's the *ceiling*, not a rival — the point I'm demonstrating is that I can write a correct fused attention kernel, and the memory win over the naive materialized-softmax path (`scripts/bench_attention.py`). A fused backward pass (to train on it) is the next step.
+Benchmark (B=4, H=12, D=64, fp16, causal), time in ms and peak memory in MB:
+
+| seq len | naive | **triton (mine)** | sdpa | naive mem | **triton mem** | sdpa mem |
+|---|---|---|---|---|---|---|
+| 1024 | 2.86 ms | **0.30 ms** | 0.30 ms | 236 MB | **34 MB** | 34 MB |
+| 2048 | 9.34 ms | **1.15 ms** | 1.09 ms | 868 MB | **59 MB** | 59 MB |
+| 4096 | 46.53 ms | **4.04 ms** | 4.19 ms | 3347 MB | **109 MB** | 109 MB |
+
+At 4k tokens my kernel is **11.5× faster and 30× lighter than naive**, and it **matches PyTorch's SDPA** — the same production FlashAttention kernel — on both axes. That's the honest headline: I didn't beat a strawman, I hit the ceiling with a hand-written kernel.
+
+Honest scope: this is **forward-only** (inference); a fused backward (to train on it) is the next step. SDPA is itself flash, so it's the ceiling — the point is a correct hand-written fused attention and the memory/latency collapse vs naive. Reproduce: `python scripts/bench_attention.py`.
 
 ## 9. Scaling study (Phase 3)
 
