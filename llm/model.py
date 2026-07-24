@@ -127,11 +127,15 @@ class Attention(nn.Module):
         # so the mask must not be causal-by-position-0; T == k_len only on
         # prefill / training, which is exactly when causal masking applies.
         is_causal = T == k.shape[2] and T > 1
-        y = F.scaled_dot_product_attention(
-            q, k, v,
-            is_causal=is_causal,
-            dropout_p=self.dropout if self.training else 0.0,
-        )
+        if getattr(self, "use_triton_attn", False) and not self.training and T > 1:
+            from .triton_attention import flash_attention
+            y = flash_attention(q, k, v, causal=is_causal)
+        else:
+            y = F.scaled_dot_product_attention(
+                q, k, v,
+                is_causal=is_causal,
+                dropout_p=self.dropout if self.training else 0.0,
+            )
         y = y.transpose(1, 2).contiguous().view(B, T, -1)
         return self.wo(y)
 
@@ -222,6 +226,11 @@ class Transformer(nn.Module):
             nn.init.normal_(module.weight, mean=0.0, std=0.02)
         elif isinstance(module, nn.Embedding):
             nn.init.normal_(module.weight, mean=0.0, std=0.02)
+
+    def use_triton_attention(self, enabled: bool = True) -> None:
+        """Switch every block to the fused Triton attention kernel (inference only)."""
+        for block in self.blocks:
+            block.attn.use_triton_attn = enabled
 
     def num_params(self, non_embedding: bool = False) -> int:
         n = sum(p.numel() for p in self.parameters())
