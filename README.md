@@ -100,6 +100,8 @@ Single change at a time vs the modern baseline, fixed budget on TinyStories:
 
 RoPE and SwiGLU clearly earn their place; RMSNorm is chosen for being cheaper (quality-neutral here); GQA trades 0.014 loss for a 3× smaller KV cache. Reproduce: `python scripts/ablations.py`.
 
+**Downstream benchmark — Story-Cloze** ([llm/benchmark_cloze.py](llm/benchmark_cloze.py)): does the model prefer the true last sentence of a held-out story over a distractor ending from another story? Tests coherence, not fluency (chance = 0.50). 30M scores **0.956**, flagship **0.930**. `python -m llm.benchmark_cloze --ckpt checkpoints/tinystories_30m/best.pt`.
+
 ### Fused Triton RMSNorm kernel (Phase 7) — dim 768, bf16
 
 A hand-written fused kernel ([llm/triton_rmsnorm.py](llm/triton_rmsnorm.py), forward **and** backward), correctness-tested against the PyTorch reference (`tests/test_triton.py`, 9 cases fp32/bf16):

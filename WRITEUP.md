@@ -116,6 +116,17 @@ What the numbers actually say — and where they refuse to flatter the defaults:
 - **RMSNorm is a wash on quality** (−0.003) — so I keep it for being *cheaper*, not more accurate. Honest: at this scale LayerNorm would lose nothing in loss.
 - **GQA costs a hair of loss** (MHA is 0.014 better) but buys a **3× smaller KV cache**. That's the trade I'd make every time for inference, and it's why production models do too — but the ablation is honest that it *is* a (tiny) trade, not a free win.
 
+### A downstream benchmark: Story-Cloze
+
+Perplexity measures fluency, not understanding. HellaSwag is far too hard for a TinyStories-scale model, so I built a domain-matched benchmark ([llm/benchmark_cloze.py](llm/benchmark_cloze.py)): strip a story's last sentence, and check whether the model assigns higher average log-prob to the **true** ending than to a **distractor** ending lifted from a different story. The distractor is a real, fluent sentence — wrong only *in context* — so this tests narrative coherence, not surface fluency. Built deterministically from held-out data; chance = 50%.
+
+| model | Story-Cloze accuracy (500 items) |
+|---|---|
+| 30M | 0.956 |
+| flagship 113M | 0.930 |
+
+Both are far above chance — the models genuinely prefer coherent continuations. (The scores aren't cross-comparable to the decimal because the two models use different tokenizers, which changes the per-token averaging; the headline is "both ~0.93–0.96", not "30M > 113M".)
+
 ## 10b. Instruction tuning (Phase 5)
 
 SFT turns "generates text" into "follows instructions." I fine-tuned the 30M base on 30k TinyStories-Instruct `(prompt, response)` pairs, with the loss **masked over the prompt** — only the response tokens are supervised (right-padded batches; causal attention means real tokens never see the trailing pad, so no mask surgery). 3 epochs, lr 2e-5, SFT val loss 1.14.
