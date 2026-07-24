@@ -132,6 +132,10 @@ A hand-written fused kernel ([llm/triton_rmsnorm.py](llm/triton_rmsnorm.py), for
 
 One SRAM pass per row vs several HBM round-trips in the reference. Reproduce: `python scripts/bench_triton.py`.
 
+### Fused causal attention Triton kernel (Phase 7, elite)
+
+A FlashAttention-style **forward** kernel ([llm/triton_attention.py](llm/triton_attention.py)): online softmax, never materializes the T×T scores (**O(T) memory vs O(T²)**), causal + boundary masks, GQA via KV expansion. Correctness-tested against SDPA (10 cases) and wired into the model as an optional inference path (`model.use_triton_attention()`) matching SDPA to 8e-4. SDPA is itself a flash kernel, so it's the ceiling, not a rival — the point is a correct hand-written fused attention + the memory win over naive. Benchmark: `python scripts/bench_attention.py`.
+
 ## What's implemented
 
 - **Byte-level BPE tokenizer from scratch** ([llm/bpe.py](llm/bpe.py)) — merge training with incremental pair counts, encode/decode, save/load. Fully tested, including UTF-8/emoji roundtrips.
