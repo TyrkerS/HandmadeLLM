@@ -4,6 +4,10 @@
 
 A modern, Llama-style LLM built **entirely from scratch** — tokenizer, model, training loop, everything. No Hugging Face `Trainer`, no imported tokenizers. Trained, evaluated, quantized and served on a single RTX 5070 Ti (12 GB).
 
+![HandmadeLLM writing a story](samples/demo.gif)
+
+*The 28M model generating a story token-by-token (real output). Weights are public on the [HF Hub](https://huggingface.co/TyrkerS/handmadellm-30m); run the demo yourself with `python -m serve.demo`.*
+
 > **Status:** all 8 phases complete, incl. the DPO stretch — from BPE merges to a fused Triton kernel. Two trained models (30M + 113M flagship), every number below reproducible. See [Roadmap](#roadmap).
 
 **One project that is really three** — an LLM from scratch, an eval harness, and inference optimization:
@@ -234,11 +238,12 @@ Run tests: `pytest tests/ -v`
 ### Play with it (demo) & weights
 
 ```bash
-# interactive Gradio demo — type a prompt, watch the story stream
+# interactive Gradio demo — type a prompt, watch the story stream (see the GIF up top)
 pip install -r requirements-serve.txt
 HLLM_CKPT=checkpoints/tinystories_30m/best.pt python -m serve.demo
+# HLLM_SHARE=1 gives a temporary public URL (~72h) for a live demo
 
-# or serve with Docker
+# or serve the FastAPI streaming endpoint with Docker
 docker build -t handmadellm . && docker run -p 8000:8000 \
   -v $PWD/checkpoints:/app/checkpoints handmadellm
 ```

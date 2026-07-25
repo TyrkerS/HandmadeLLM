@@ -87,4 +87,5 @@ with gr.Blocks(title=TITLE) as demo:
     )
 
 if __name__ == "__main__":
-    demo.launch()
+    # HLLM_SHARE=1 gives a temporary public URL (~72h) for live demos
+    demo.launch(share=os.environ.get("HLLM_SHARE") == "1")
