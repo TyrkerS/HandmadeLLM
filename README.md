@@ -1,6 +1,6 @@
 # HandmadeLLM
 
-![CI](https://github.com/<your-username>/HandmadeLLM/actions/workflows/ci.yml/badge.svg) &nbsp;![license](https://img.shields.io/badge/license-MIT-blue)
+![CI](https://github.com/TyrkerS/HandmadeLLM/actions/workflows/ci.yml/badge.svg) &nbsp;![license](https://img.shields.io/badge/license-MIT-blue)
 
 A modern, Llama-style LLM built **entirely from scratch** — tokenizer, model, training loop, everything. No Hugging Face `Trainer`, no imported tokenizers. Trained, evaluated, quantized and served on a single **RTX 5070 Ti Laptop GPU** (12 GB, Blackwell) — a laptop, not a datacenter.
 

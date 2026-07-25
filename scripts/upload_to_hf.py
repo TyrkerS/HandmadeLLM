@@ -6,7 +6,7 @@ Hub is where they belong. Run this yourself once you're logged in:
     pip install huggingface_hub
     huggingface-cli login                      # paste your write token
     python scripts/upload_to_hf.py --ckpt checkpoints/tinystories_30m/best.pt \
-        --repo <your-username>/handmadellm-30m --tokenizer data/tinystories/tokenizer.json
+        --repo TyrkerS/handmadellm-30m --tokenizer data/tinystories/tokenizer.json
 
 The script uploads the checkpoint + tokenizer + a README.md model card. It does
 NOT log in for you and never handles your token.
@@ -34,7 +34,7 @@ training loop. Trained on TinyStories on a single RTX 5070 Ti.
 - **Val bits-per-byte:** {bpb}
 
 Code, training scripts, evals, quantization, a fused Triton kernel, and the full
-writeup: **https://github.com/<your-username>/HandmadeLLM**
+writeup: **https://github.com/TyrkerS/HandmadeLLM**
 
 ## Usage
 
