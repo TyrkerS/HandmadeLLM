@@ -65,6 +65,19 @@ bf16 alone is **3.2× throughput**; checkpointing cuts VRAM **12.4 → 4 GB** (u
 
 **1.94× speedup**, and it grows with context length (the whole point of the cache). Reproduce: `python scripts/bench_inference.py`.
 
+### Continuous batching (Phase 4, elite) — what makes vLLM fast
+
+A naive server decodes one request at a time, leaving the GPU idle between tokens. My [`ContinuousBatchingEngine`](llm/engine.py) keeps a dynamic batch of in-flight requests, advances them all per forward pass, and admits new arrivals mid-flight — handling ragged lengths (left-padded KV cache + key-padding mask) and per-sequence RoPE positions. Correctness is pinned to sequential greedy decoding (`tests/test_engine.py`). Aggregate throughput on the flagship 113M:
+
+| concurrency | sequential tok/s | batched tok/s | speedup |
+|---|---|---|---|
+| 1 | 125 | 97 | 0.78× |
+| 4 | 109 | 293 | 2.69× |
+| 8 | 110 | 444 | 4.05× |
+| 16 | 109 | **634** | **5.80×** |
+
+Sequential throughput is flat no matter how many clients (it serves them one by one); batching scales it **5.8×** at 16 concurrent before the GPU saturates. Honest note: at concurrency 1 the engine is 0.78× — batching helps under load, not for single requests. Reproduce: `python scripts/bench_serving.py`.
+
 ### Mini scaling law (Phase 3) — 4 sizes, fixed token budget
 
 | model | non-emb params | final val loss |
@@ -264,7 +277,7 @@ WRITEUP.md      the honest engineering log
 - [x] **Phase 7** — fused Triton RMSNorm kernel (fwd+bwd) + correctness tests + benchmark (up to 15× fwd) ✅
 - [x] **Phase 8** — technical writeup ([WRITEUP.md](WRITEUP.md)) with all real numbers + a "what didn't work" section ✅
 
-*Optional future work:* a fast INT8 GEMM (quant currently saves memory, not latency) and a fused attention kernel.
+*Optional future work:* a fast INT8 GEMM (quant currently saves memory, not latency).
 
 ## Design decisions
 

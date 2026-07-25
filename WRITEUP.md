@@ -75,6 +75,8 @@ Takeaways: bf16 is a **3.2× throughput** win on Blackwell and the single bigges
 
 **KV cache** — flagship, 512-token generation: **1.94×** faster (156 vs 80 tok/s), and the gap widens with context length because uncached decoding is O(T²) in the sequence. Correctness is pinned by a test asserting cached and uncached greedy decoding produce *identical* tokens.
 
+**Continuous batching** ([llm/engine.py](llm/engine.py)) — the serving trick behind vLLM. A naive server decodes one request at a time; my engine keeps a dynamic batch, advances every in-flight request per forward pass, and admits new arrivals mid-flight. The hard parts: ragged sequence lengths (left-padded KV cache + a key-padding mask so queries never see pad slots) and per-sequence RoPE positions (each row is at a different absolute position, so I thread `position_ids` through instead of a shared `start_pos`). Correctness is pinned to sequential greedy decoding token-for-token. Aggregate throughput on the flagship: sequential serving is flat at ~109 tok/s regardless of load, while batching scales to **634 tok/s at 16 concurrent requests (5.8×)** before the GPU saturates. Honest: at concurrency 1 the engine's per-step overhead makes it 0.78× — batching is a throughput-under-load win, not a single-request one.
+
 **Weight-only quantization from scratch** (per-row symmetric, int4 bit-packed two-per-byte), measured on the trained 30M:
 
 | precision | linear weights | perplexity | vs fp |

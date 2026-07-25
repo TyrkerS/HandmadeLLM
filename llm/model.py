@@ -39,9 +39,20 @@ def _rotate_half(x: torch.Tensor) -> torch.Tensor:
 
 
 def apply_rope(q: torch.Tensor, k: torch.Tensor, cos: torch.Tensor, sin: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-    """q: (B, n_heads, T, hd), k: (B, n_kv_heads, T, hd), cos/sin: (T, hd)."""
-    cos = cos[None, None, :, :].to(q.dtype)
-    sin = sin[None, None, :, :].to(q.dtype)
+    """q: (B, n_heads, T, hd), k: (B, n_kv_heads, T, hd).
+
+    cos/sin are (T, hd) for a shared position range (broadcast over the batch),
+    or (B, T, hd) for per-sequence positions (continuous batching, where each
+    row is at a different absolute position).
+    """
+    if cos.dim() == 2:
+        cos = cos[None, None, :, :]
+        sin = sin[None, None, :, :]
+    else:  # (B, T, hd) -> (B, 1, T, hd)
+        cos = cos[:, None, :, :]
+        sin = sin[:, None, :, :]
+    cos = cos.to(q.dtype)
+    sin = sin.to(q.dtype)
     q = q * cos + _rotate_half(q) * sin
     k = k * cos + _rotate_half(k) * sin
     return q, k
@@ -107,6 +118,7 @@ class Attention(nn.Module):
         cos: torch.Tensor,
         sin: torch.Tensor,
         cache: KVCache | None = None,
+        attn_mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
         B, T, _ = x.shape
         q = self.wq(x).view(B, T, self.n_heads, self.head_dim).transpose(1, 2)
@@ -126,16 +138,20 @@ class Attention(nn.Module):
         # With a warm cache we decode one token attending to all cached keys,
         # so the mask must not be causal-by-position-0; T == k_len only on
         # prefill / training, which is exactly when causal masking applies.
-        is_causal = T == k.shape[2] and T > 1
-        if getattr(self, "use_triton_attn", False) and not self.training and T > 1:
-            from .triton_attention import flash_attention
-            y = flash_attention(q, k, v, causal=is_causal)
+        if attn_mask is not None:
+            # explicit mask (continuous batching): (B, 1, T, k_len), additive
+            y = F.scaled_dot_product_attention(q, k, v, attn_mask=attn_mask)
         else:
-            y = F.scaled_dot_product_attention(
-                q, k, v,
-                is_causal=is_causal,
-                dropout_p=self.dropout if self.training else 0.0,
-            )
+            is_causal = T == k.shape[2] and T > 1
+            if getattr(self, "use_triton_attn", False) and not self.training and T > 1:
+                from .triton_attention import flash_attention
+                y = flash_attention(q, k, v, causal=is_causal)
+            else:
+                y = F.scaled_dot_product_attention(
+                    q, k, v,
+                    is_causal=is_causal,
+                    dropout_p=self.dropout if self.training else 0.0,
+                )
         y = y.transpose(1, 2).contiguous().view(B, T, -1)
         return self.wo(y)
 
@@ -188,8 +204,8 @@ class Block(nn.Module):
         self.mlp_norm = make_norm(cfg)
         self.mlp = make_mlp(cfg)
 
-    def forward(self, x, cos, sin, cache=None):
-        x = x + self.attn(self.attn_norm(x), cos, sin, cache)
+    def forward(self, x, cos, sin, cache=None, attn_mask=None):
+        x = x + self.attn(self.attn_norm(x), cos, sin, cache, attn_mask)
         x = x + self.mlp(self.mlp_norm(x))
         return x
 
@@ -248,23 +264,32 @@ class Transformer(nn.Module):
         targets: torch.Tensor | None = None,
         caches: list[KVCache] | None = None,
         start_pos: int = 0,
+        position_ids: torch.Tensor | None = None,
+        attn_mask: torch.Tensor | None = None,
     ):
         B, T = idx.shape
-        assert start_pos + T <= self.cfg.max_seq_len, "sequence longer than max_seq_len"
-        cos = self.rope_cos[start_pos : start_pos + T]
-        sin = self.rope_sin[start_pos : start_pos + T]
+        if position_ids is not None:
+            # per-sequence positions (continuous batching): (B, T) -> (B, T, hd)
+            cos = self.rope_cos[position_ids]
+            sin = self.rope_sin[position_ids]
+        else:
+            assert start_pos + T <= self.cfg.max_seq_len, "sequence longer than max_seq_len"
+            cos = self.rope_cos[start_pos : start_pos + T]
+            sin = self.rope_sin[start_pos : start_pos + T]
 
         h = self.tok_emb(idx)
         if self.pos_emb is not None:
-            pos = torch.arange(start_pos, start_pos + T, device=idx.device)
-            h = h + self.pos_emb(pos)[None]
+            pos = (position_ids if position_ids is not None
+                   else torch.arange(start_pos, start_pos + T, device=idx.device))
+            # (T,dim) broadcasts over batch; (B,T,dim) adds per-sequence
+            h = h + self.pos_emb(pos)
         x = self.drop(h)
         for i, block in enumerate(self.blocks):
             cache = caches[i] if caches is not None else None
             if self.grad_checkpointing and self.training:
-                x = checkpoint(block, x, cos, sin, cache, use_reentrant=False)
+                x = checkpoint(block, x, cos, sin, cache, attn_mask, use_reentrant=False)
             else:
-                x = block(x, cos, sin, cache)
+                x = block(x, cos, sin, cache, attn_mask)
         x = self.norm(x)
 
         if targets is not None:
