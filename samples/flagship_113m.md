@@ -1,9 +1,30 @@
 # Flagship 113M — generation samples
 
 Model: 113M params (dim 768, 16 layers, GQA 12q/4kv, ctx 1024, own 16k BPE).
-Training: 4000 steps, effective batch 164k tokens (~655M tokens total), bf16 +
-gradient checkpointing + torch.compile, ~5 h on one RTX 5070 Ti (5.3 GB peak).
-Final val loss 1.257, held-out perplexity 3.71 (16k vocab).
+Training: bf16 + gradient checkpointing + torch.compile on one RTX 5070 Ti
+(5.3 GB peak). A first run (655M tokens, val 1.257) was flagged as under-trained
+by bits-per-byte; the longer run below (~984M tokens) reached **val 1.232,
+perplexity 3.70, bits-per-byte 0.449**.
+
+---
+
+**Prompt:** `Once upon a time there was a little robot` — *longer run* (temp 0.8, seed 1)
+
+> Once upon a time there was a little robot. He was very flexible, which means he was able to twist and turn in many different ways.
+>
+> One day the robot was walking through the forest, when he heard a voice. It was a little girl who said, "Hey robot, let me join you!" … "Come with me and I will show you something special!"
+>
+> So the robot followed the little girl. She showed him a secret path that lead into a dark cave. The robot was scared but he said, "Ok, let's go!" … Inside the chest were lots of colorful toys and books. The robot was so excited.
+
+Note the step up from the first run: "flexible, which means he was able to
+twist and turn", a multi-beat plot (meeting → cave → treasure), and sustained
+dialogue.
+
+---
+
+## First-run samples (655M tokens)
+
+Model: 113M params, 4000 steps (~655M tokens), val loss 1.257, perplexity 3.71.
 
 Sampling: temperature 0.75–0.8, top-k 50. Reproduce with
 `python -m llm.sample --ckpt checkpoints/flagship_113m/best.pt --prompt "..."`.

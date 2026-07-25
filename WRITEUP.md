@@ -45,14 +45,17 @@ Honest failure modes: occasional logical slips ("a small box. It was a very big 
 
 The headline model: dim 768, 16 layers, GQA 12q/4kv, **1024 context, 16k BPE**, 113M params. It only fits and trains at a reasonable speed *because* of the Phase 2 efficiency work — bf16 + gradient checkpointing + compile keep it at **5.3 GB peak** and ~34k tok/s, so 4000 steps (~655M tokens) finished in ~5 h. Final val loss 1.26, perplexity 3.71. Qualitatively it's a clear step up: named characters, richer vocabulary, longer arcs (`samples/flagship_113m.md`).
 
-An honest measurement note: the flagship's per-token val loss (1.26) is **not** comparable to the 30M's (1.24) — they use different tokenizers, and a 16k vocab packs more information per token, so per-token cross-entropy is naturally higher. The fair cross-tokenizer metric is **bits-per-byte** (total NLL ÷ UTF-8 bytes), which I compute directly ([llm/eval.py](llm/eval.py)):
+An honest measurement note: the flagship's per-token val loss (1.26) is **not** comparable to the 30M's (1.24) — they use different tokenizers, and a 16k vocab packs more information per token, so per-token cross-entropy is naturally higher. The fair cross-tokenizer metric is **bits-per-byte** (total NLL ÷ UTF-8 bytes), which I compute directly ([llm/eval.py](llm/eval.py)) — and it drove a real iteration on this project:
 
-| model | val bits-per-byte (lower is better) |
-|---|---|
-| 30M (8k vocab) | 0.4556 |
-| flagship 113M (16k vocab) | **0.4537** |
+| model | tokens seen | val bits-per-byte (↓) |
+|---|---|---|
+| 30M (8k vocab) | ~1.5B | 0.4556 |
+| flagship — first run | 655M | 0.4537 |
+| **flagship — longer run** | ~984M | **0.4491** |
 
-So the flagship *is* the better model on the fair metric — which also means the Story-Cloze gap (0.930 vs 0.956) was tokenizer/sampling noise, not a real regression. **But** the margin is tiny (0.4%) for 4× the parameters, and that's the tell: **the flagship is under-trained.** At 655M tokens it saw only ~5.8 tokens/param, far below the Chinchilla-optimal ~20 (≈2.3B tokens). A properly-budgeted rerun (3–4× longer) should open a real gap; it's the clearest "what I'd fix next" in this project, and the honest reason the headline model doesn't yet dominate.
+The first flagship beat the 30M by only 0.4% for 4× the parameters — the tell of an **under-trained** model (655M tokens ≈ 5.8 tok/param vs Chinchilla-optimal ~20). So I re-ran it longer (resuming from a checkpoint — the training loop supports it). The gap over the 30M widened from 0.4% to **1.4%** (val 1.257 → 1.232, ppl 3.75 → 3.70), and generation quality visibly improved (multi-beat plots, richer vocabulary).
+
+The honest twist: val **plateaued** around 1.23 in the final 500 steps. TinyStories is deliberately simple, so a 113M model saturates well before a full Chinchilla token budget — the original diagnosis ("under-trained") was right, but the real ceiling here is the *dataset*, not the compute. A harder corpus (FineWeb-Edu) is where more parameters would keep paying off; on TinyStories, ~1.23 val is about the floor. Catching this required bits-per-byte — measuring it is what turned "the headline model is my weakest point" into a documented, fixed iteration.
 
 ## 6. Making 12 GB enough (Phase 2)
 

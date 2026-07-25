@@ -21,14 +21,14 @@ A modern, Llama-style LLM built **entirely from scratch** — tokenizer, model, 
 
 ## Results
 
-**The flagship: a 113M-param model** (dim 768, 16 layers, GQA 12q/4kv, 1024 context, own 16k BPE), trained from scratch in **~5 h on one RTX 5070 Ti** (5.3 GB peak thanks to the Phase 2 efficiency stack), final val loss **1.26**, perplexity **3.71**:
+**The flagship: a 113M-param model** (dim 768, 16 layers, GQA 12q/4kv, 1024 context, own 16k BPE), trained from scratch on one RTX 5070 Ti (5.3 GB peak thanks to the Phase 2 efficiency stack). After a bits-per-byte diagnosis flagged the first run as under-trained (see below), a longer run (~984M tokens) reached val loss **1.23**, perplexity **3.70**, **bits-per-byte 0.449**:
 
 > *Prompt:* **Once upon a time there was a little robot**
-> …named Jake. Jake was very excited to explore the world. He had never seen so many wonders before! He went to the park and saw a pond full of ice and sparkling water… Soon, the sun started to set and Jake had to go home. He was sad to leave, but he knew he'd be back soon.
+> …He was very flexible, which means he was able to twist and turn in many different ways. One day the robot was walking through the forest, when he heard a voice… "Come with me and I will show you something special!" So the robot followed the little girl. She showed him a secret path that lead into a dark cave… Inside the chest were lots of colorful toys and books. The robot was so excited.
 
-Named characters, richer vocabulary, 1024-token context. Full samples: [`samples/flagship_113m.md`](samples/flagship_113m.md).
+Sophisticated vocabulary, multi-beat plot, dialogue, 1024-token context. Full samples: [`samples/flagship_113m.md`](samples/flagship_113m.md).
 
-![Flagship loss](samples/loss_flagship.svg)
+![Flagship loss](samples/loss_flagship_long.svg)
 
 **The 28M workhorse**, trained from scratch on TinyStories (own 8k BPE tokenizer, ctx 512, ~2.6 h, final val loss **1.24**, held-out **perplexity 3.75**):
 
@@ -117,7 +117,15 @@ RoPE and SwiGLU clearly earn their place; RMSNorm is chosen for being cheaper (q
 
 **Downstream benchmark — Story-Cloze** ([llm/benchmark_cloze.py](llm/benchmark_cloze.py)): does the model prefer the true last sentence of a held-out story over a distractor ending from another story? Tests coherence, not fluency (chance = 0.50). 30M scores **0.956**, flagship **0.930**. `python -m llm.benchmark_cloze --ckpt checkpoints/tinystories_30m/best.pt`.
 
-**Bits-per-byte — the fair cross-tokenizer metric.** Perplexity can't rank the 8k-vocab 30M against the 16k-vocab flagship; bits-per-byte (NLL ÷ UTF-8 bytes) can: 30M **0.4556** vs flagship **0.4537** (↓ better). The flagship *is* better on the fair metric (so the Story-Cloze gap was noise) — but only 0.4% for 4× the params, which honestly flags that the **flagship is under-trained** (655M tokens ≈ 5.8 tok/param vs Chinchilla ~20); it's the top "what I'd fix next."
+**Bits-per-byte — the fair cross-tokenizer metric.** Perplexity can't rank the 8k-vocab 30M against the 16k-vocab flagship; bits-per-byte (NLL ÷ UTF-8 bytes) can. This is also the metric that drove a real iteration:
+
+| model | tokens seen | bits-per-byte (↓) |
+|---|---|---|
+| 30M | ~1.5B | 0.4556 |
+| flagship — first run | 655M | 0.4537 |
+| **flagship — longer run** | ~984M | **0.4491** |
+
+The first flagship beat the 30M by only 0.4% for 4× the params — a red flag that it was **under-trained** (5.8 tok/param vs Chinchilla ~20). Re-training longer widened the gap to **1.4%** (val 1.257 → 1.232, ppl 3.75 → 3.70). Honest finding: val **plateaued** around 1.23 in the last 500 steps — TinyStories is simple enough that a 113M model saturates well before a full Chinchilla budget, so the diagnosis was "under-trained," but the ceiling is the dataset, not the compute.
 
 ### Fused Triton RMSNorm kernel (Phase 7) — dim 768, bf16
 
