@@ -85,7 +85,9 @@ Takeaways: bf16 is a **3.2× throughput** win on Blackwell and the single bigges
 | int8 | 40 MB | 3.42 | 2.7× smaller, **+0.0%** |
 | int4 | 29 MB | 3.61 | 3.9× smaller, +5.5% |
 
-int8 is a free memory win; int4 costs ~5% perplexity for another ~30% off. I kept `lm_head` (tied to the embedding) in full precision. Honest caveat: my forward is dequant-then-bf16-matmul, so it doesn't *speed up* inference — a fused INT8 GEMM is future work; what I'm measuring is the accuracy/size trade-off of the scheme.
+int8 is a free memory win; int4 costs ~5% perplexity for another ~30% off. I kept `lm_head` (tied to the embedding) in full precision.
+
+That table quantizes weights but dequantizes to bf16 for the matmul, so it saves memory, not time. So I also wrote a **real W8A8 INT8 GEMM in Triton** ([llm/triton_int8.py](llm/triton_int8.py)) that keeps int8 all the way through — int32 accumulation on the INT8 tensor cores, a single dequant at the end via the outer product of the per-token and per-channel scales. Benchmarked against cuBLAS bf16, it **wins on large matmuls** (1.15× on the lm_head-shaped 768×16384, 1.55× on a 4096² square) but **loses on small ones** (0.34–0.90×): the crossover is exactly where the GEMM becomes compute-bound enough for INT8 tensor cores to overcome the quantization overhead — and my kernel isn't autotuned the way cuBLAS is. That turns the quantization story from "quality vs size" into "quality vs size vs latency," honestly bounded by where the win actually materializes.
 
 ## 8. A fused Triton kernel (Phase 7)
 

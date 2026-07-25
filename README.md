@@ -101,7 +101,17 @@ Per-row symmetric quantization ([llm/quant.py](llm/quant.py)), `lm_head` kept fu
 | **int8** | 40 MB | 3.42 | **2.7× smaller, +0.0% ppl** |
 | **int4** | 29 MB | 3.61 | **3.9× smaller, +5.5% ppl** |
 
-int8 is a free memory win; int4 trades ~5% perplexity for another ~30% off. (Throughput here is dequant→bf16-matmul, so it doesn't beat fp — a fast INT8 GEMM is future work; the measured trade-off is quality vs size.) Reproduce: `python scripts/bench_quant.py`.
+int8 is a free memory win; int4 trades ~5% perplexity for another ~30% off. Reproduce: `python scripts/bench_quant.py`.
+
+**Making int8 *fast*, not just small — a real Triton W8A8 GEMM** ([llm/triton_int8.py](llm/triton_int8.py)). The table above quantizes weights but dequantizes to bf16 to matmul, so it saves memory without saving time. This kernel keeps int8 through the matmul (int32 accumulate on the INT8 tensor cores, dequant once at the end). vs bf16 cuBLAS, by matmul size:
+
+| matmul (M × K×N) | bf16 | int8 | speedup |
+|---|---|---|---|
+| 2048 × 768×2048 (MLP) | 0.133 ms | 0.148 ms | 0.90× |
+| 2048 × 768×16384 (lm_head) | 1.039 ms | 0.902 ms | **1.15×** |
+| 512 × 4096×4096 | 0.433 ms | 0.279 ms | **1.55×** |
+
+Honest finding: int8 **wins on large matmuls** (the lm_head projection, big squares) but **loses on small ones** — the crossover is where the GEMM is compute-bound enough for the INT8 tensor cores to beat cuBLAS bf16 despite the quantization overhead (and my kernel isn't autotuned like cuBLAS). Correctness < 5% rel. error (`tests/test_triton_int8.py`). Reproduce: `python scripts/bench_int8.py`.
 
 ### Instruction tuning (Phase 5) — before vs after SFT
 
@@ -277,7 +287,7 @@ WRITEUP.md      the honest engineering log
 - [x] **Phase 7** — fused Triton RMSNorm kernel (fwd+bwd) + correctness tests + benchmark (up to 15× fwd) ✅
 - [x] **Phase 8** — technical writeup ([WRITEUP.md](WRITEUP.md)) with all real numbers + a "what didn't work" section ✅
 
-*Optional future work:* a fast INT8 GEMM (quant currently saves memory, not latency).
+*Optional future work:* autotune the INT8 GEMM to win at all matmul sizes; a fused attention backward pass (to train on the Triton kernel); a harder corpus (FineWeb-Edu) where more parameters keep paying off.
 
 ## Design decisions
 
