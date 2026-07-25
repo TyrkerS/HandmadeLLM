@@ -2,7 +2,7 @@
 
 ![CI](https://github.com/<your-username>/HandmadeLLM/actions/workflows/ci.yml/badge.svg) &nbsp;![license](https://img.shields.io/badge/license-MIT-blue)
 
-A modern, Llama-style LLM built **entirely from scratch** — tokenizer, model, training loop, everything. No Hugging Face `Trainer`, no imported tokenizers. Trained, evaluated, quantized and served on a single RTX 5070 Ti (12 GB).
+A modern, Llama-style LLM built **entirely from scratch** — tokenizer, model, training loop, everything. No Hugging Face `Trainer`, no imported tokenizers. Trained, evaluated, quantized and served on a single **RTX 5070 Ti Laptop GPU** (12 GB, Blackwell) — a laptop, not a datacenter.
 
 ![HandmadeLLM writing a story](samples/demo.gif)
 
@@ -25,7 +25,7 @@ A modern, Llama-style LLM built **entirely from scratch** — tokenizer, model, 
 
 ## Results
 
-**The flagship: a 113M-param model** (dim 768, 16 layers, GQA 12q/4kv, 1024 context, own 16k BPE), trained from scratch on one RTX 5070 Ti (5.3 GB peak thanks to the Phase 2 efficiency stack). After a bits-per-byte diagnosis flagged the first run as under-trained (see below), a longer run (~984M tokens) reached val loss **1.23**, perplexity **3.70**, **bits-per-byte 0.449**:
+**The flagship: a 113M-param model** (dim 768, 16 layers, GQA 12q/4kv, 1024 context, own 16k BPE), trained from scratch on one RTX 5070 Ti **Laptop** GPU (5.3 GB peak thanks to the Phase 2 efficiency stack). After a bits-per-byte diagnosis flagged the first run as under-trained (see below), a longer run (~984M tokens) reached val loss **1.23**, perplexity **3.70**, **bits-per-byte 0.449**:
 
 > *Prompt:* **Once upon a time there was a little robot**
 > …He was very flexible, which means he was able to twist and turn in many different ways. One day the robot was walking through the forest, when he heard a voice… "Come with me and I will show you something special!" So the robot followed the little girl. She showed him a secret path that lead into a dark cave… Inside the chest were lots of colorful toys and books. The robot was so excited.
@@ -46,7 +46,7 @@ Full samples: [`samples/tinystories_30m.md`](samples/tinystories_30m.md). Cohere
 
 ![Training loss](samples/loss_30m.svg)
 
-### Efficiency engineering (Phase 2) — flagship 113M, RTX 5070 Ti 12 GB
+### Efficiency engineering (Phase 2) — flagship 113M, RTX 5070 Ti Laptop 12 GB
 
 Each optimization applied cumulatively. This is the table that makes 12 GB enough:
 

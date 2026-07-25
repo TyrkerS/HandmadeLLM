@@ -1,6 +1,6 @@
 # Building a modern LLM from scratch on one laptop GPU
 
-*A Llama-style decoder-only transformer — tokenizer, model, training, quantization, serving, evaluation, and a fused Triton kernel — written by hand and run end-to-end on a single RTX 5070 Ti (12 GB, Blackwell).*
+*A Llama-style decoder-only transformer — tokenizer, model, training, quantization, serving, evaluation, and a fused Triton kernel — written by hand and run end-to-end on a single RTX 5070 Ti **Laptop** GPU (12 GB, Blackwell) — a laptop, not a datacenter.*
 
 This is the honest engineering log: what I built, the numbers I measured, and what I'd do differently. The signal here isn't model size — it's depth, correctness, and reproducibility. Every number below is reproducible from the repo.
 
