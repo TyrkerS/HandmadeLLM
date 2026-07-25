@@ -1,6 +1,14 @@
 # HandmadeLLM
 
-![CI](https://github.com/TyrkerS/HandmadeLLM/actions/workflows/ci.yml/badge.svg) &nbsp;![license](https://img.shields.io/badge/license-MIT-blue)
+[![CI](https://github.com/TyrkerS/HandmadeLLM/actions/workflows/ci.yml/badge.svg)](https://github.com/TyrkerS/HandmadeLLM/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/python-3.11-3776AB?logo=python&logoColor=white)
+![PyTorch](https://img.shields.io/badge/PyTorch-2.11%20cu128-EE4C2C?logo=pytorch&logoColor=white)
+![Triton](https://img.shields.io/badge/Triton-kernels-blueviolet)
+![tests](https://img.shields.io/badge/tests-78%20passing-brightgreen)
+![license](https://img.shields.io/badge/license-MIT-blue)
+
+[![HF 30M](https://img.shields.io/badge/🤗%20weights-HandmadeLLM--30M-FFD21E)](https://huggingface.co/TyrkerS/handmadellm-30m)
+[![HF 113M](https://img.shields.io/badge/🤗%20weights-HandmadeLLM--113M-FFD21E)](https://huggingface.co/TyrkerS/handmadellm-113m)
 
 A modern, Llama-style LLM built **entirely from scratch** — tokenizer, model, training loop, everything. No Hugging Face `Trainer`, no imported tokenizers. Trained, evaluated, quantized and served on a single **RTX 5070 Ti Laptop GPU** (12 GB, Blackwell) — a laptop, not a datacenter.
 
