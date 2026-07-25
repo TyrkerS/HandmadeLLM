@@ -48,14 +48,15 @@ def load_font(size):
 def render_frame(prompt: str, body: str, font, cursor: bool) -> Image.Image:
     img = Image.new("RGB", (W, H), BG)
     d = ImageDraw.Draw(img)
-    # header bar
+    # header bar: clean, neutral (no OS window chrome)
     d.rectangle([0, 0, W, 40], fill=(22, 27, 34))
-    for i, c in enumerate((ACCENT, (255, 200, 60), (255, 95, 86))):
-        d.ellipse([PAD + i * 22, 15, PAD + i * 22 + 11, 26], fill=c)
-    d.text((PAD + 80, 12), "HandmadeLLM — generating", font=font, fill=(139, 148, 158))
+    d.line([0, 40, W, 40], fill=(48, 54, 61), width=1)
+    d.text((PAD, 12), "HandmadeLLM", font=font, fill=ACCENT)
+    d.text((PAD + int(d.textlength("HandmadeLLM", font=font)) + 14, 12),
+           "— generating", font=font, fill=(139, 148, 158))
 
     y = 58
-    d.text((PAD, y), "> ", font=font, fill=ACCENT)
+    d.text((PAD, y), "$ ", font=font, fill=ACCENT)
     d.text((PAD + 22, y), prompt, font=font, fill=PROMPT_COL)
     y += LINE_H + 8
 
