@@ -25,7 +25,7 @@ A modern, Llama-style LLM built **entirely from scratch** — tokenizer, model, 
 
 ## Results
 
-**The flagship: a 113M-param model** (dim 768, 16 layers, GQA 12q/4kv, 1024 context, own 16k BPE), trained from scratch on one RTX 5070 Ti **Laptop** GPU (5.3 GB peak thanks to the Phase 2 efficiency stack). After a bits-per-byte diagnosis flagged the first run as under-trained (see below), a longer run (~984M tokens) reached val loss **1.23**, perplexity **3.70**, **bits-per-byte 0.449**:
+**The flagship: a 113M-param model** ([weights on HF Hub 🤗](https://huggingface.co/TyrkerS/handmadellm-113m)) — dim 768, 16 layers, GQA 12q/4kv, 1024 context, own 16k BPE, trained from scratch on one RTX 5070 Ti **Laptop** GPU (5.3 GB peak thanks to the Phase 2 efficiency stack). After a bits-per-byte diagnosis flagged the first run as under-trained (see below), a longer run (~984M tokens) reached val loss **1.23**, perplexity **3.70**, **bits-per-byte 0.449**:
 
 > *Prompt:* **Once upon a time there was a little robot**
 > …He was very flexible, which means he was able to twist and turn in many different ways. One day the robot was walking through the forest, when he heard a voice… "Come with me and I will show you something special!" So the robot followed the little girl. She showed him a secret path that lead into a dark cave… Inside the chest were lots of colorful toys and books. The robot was so excited.
@@ -34,7 +34,7 @@ Sophisticated vocabulary, multi-beat plot, dialogue, 1024-token context. Full sa
 
 ![Flagship loss](samples/loss_flagship_long.svg)
 
-**The 28M workhorse**, trained from scratch on TinyStories (own 8k BPE tokenizer, ctx 512, ~2.6 h, final val loss **1.24**, held-out **perplexity 3.75**):
+**The 28M workhorse** ([weights on HF Hub 🤗](https://huggingface.co/TyrkerS/handmadellm-30m)), trained from scratch on TinyStories (own 8k BPE tokenizer, ctx 512, ~2.6 h, final val loss **1.24**, held-out **perplexity 3.75**):
 
 > *Prompt:* **Once upon a time there was a little robot**
 > …who was very excited. He was always looking for new things to add to his collection of friends. One day, he went out for a walk. As he was walking, he saw a small box… The robot thought for a minute and then said, "Let's add something to the box!" He brought out a toy truck, and they all smiled.
