@@ -1,0 +1,5 @@
+torch
+numpy
+PyYAML
+gradio
+huggingface_hub

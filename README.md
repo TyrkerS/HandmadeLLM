@@ -243,7 +243,11 @@ docker build -t handmadellm . && docker run -p 8000:8000 \
   -v $PWD/checkpoints:/app/checkpoints handmadellm
 ```
 
-Checkpoints are gitignored (300 MB / 1.3 GB) — they belong on the HF Hub. Publish them with `python scripts/upload_to_hf.py --ckpt <ckpt> --repo <user>/handmadellm-30m --tokenizer <tok>` (generates a model card). *Live weights + Space: TODO — links go here.*
+**Weights on the Hugging Face Hub** (checkpoints are gitignored — they belong on the Hub):
+- 30M — https://huggingface.co/TyrkerS/handmadellm-30m
+- flagship 113M — https://huggingface.co/TyrkerS/handmadellm-113m
+
+Reproduce the upload with `python scripts/upload_to_hf.py --ckpt <ckpt> --repo <user>/<name> --tokenizer <tok>` (generates a model card).
 
 ## Architecture
 
